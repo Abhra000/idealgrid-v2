@@ -1,0 +1,2184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Grid Matrix Portal — Commission Intelligence</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<style>
+:root{
+  --navy:#2D4E31; --navy2:#3E6845; --accent:#C9962C; --accent2:#E0B75A;
+  --bg:#F3F7F3; --card:#ffffff; --ink:#1F2D22; --muted:#5A6B5D;
+  --line:#DCE6DC; --green:#0e9f6e; --red:#e02424; --blue:#2563eb;
+  --shadow:0 4px 18px rgba(31,45,34,.10); --radius:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+/* ---------- Header ---------- */
+header{background:linear-gradient(120deg,var(--navy) 0%,var(--navy2) 60%,#4E7A54 100%);color:#fff;padding:0 32px;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.hd{display:flex;align-items:center;gap:14px;height:64px}
+.logo{height:34px;padding:4px 8px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.logo img{height:100%;width:auto;display:block}
+.hd h1{font-size:18px;font-weight:700;letter-spacing:.3px}
+.hd small{display:block;font-size:11px;font-weight:400;color:#C7D6C9;letter-spacing:1.2px;text-transform:uppercase}
+.hd .spacer{flex:1}
+.btn{border:none;border-radius:9px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:.18s;display:inline-flex;align-items:center;gap:7px}
+.btn-accent{background:linear-gradient(135deg,var(--accent),#D9A93F);color:#fff;box-shadow:0 3px 10px rgba(201,150,44,.4)}
+.btn-accent:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(201,150,44,.55)}
+.btn-ghost{background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.25)}
+.btn-ghost:hover{background:rgba(255,255,255,.22)}
+.btn-outline{background:#fff;color:var(--navy);border:1px solid var(--line)}
+.btn-outline:hover{border-color:var(--accent);color:var(--accent)}
+
+main{margin-left:230px;padding:28px 32px 60px;transition:margin .25s ease}
+body.side-closed main{margin-left:0}
+
+/* ---------- Sidebar ---------- */
+.burger{width:40px;height:40px;border:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;cursor:pointer;display:flex;flex-direction:column;gap:4px;align-items:center;justify-content:center;transition:.18s;flex-shrink:0}
+.burger:hover{background:rgba(255,255,255,.25)}
+.burger i{display:block;width:18px;height:2px;background:#fff;border-radius:2px;transition:.25s}
+body:not(.side-closed) .burger i:nth-child(1){transform:translateY(6px) rotate(45deg)}
+body:not(.side-closed) .burger i:nth-child(2){opacity:0}
+body:not(.side-closed) .burger i:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+#sidebar{position:fixed;top:64px;left:0;bottom:0;width:230px;background:#fff;border-right:1px solid var(--line);padding:20px 14px;z-index:40;transition:transform .25s ease;box-shadow:2px 0 14px rgba(31,45,34,.07)}
+body.side-closed #sidebar{transform:translateX(-100%)}
+body.locked #sidebar{display:none}
+.nav-lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:700;padding:0 12px;margin-bottom:8px}
+.nav-item{display:flex;align-items:center;gap:11px;width:100%;padding:12px 14px;border:none;background:none;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;text-align:left;margin-bottom:4px;position:relative}
+.nav-item:hover{background:#F0F5F0;color:var(--navy)}
+.nav-item.active{background:#E7EFE7;color:var(--navy)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:9px;bottom:9px;width:3.5px;border-radius:3px;background:var(--accent)}
+.nav-item .nic{font-size:16px;width:20px;text-align:center}
+
+/* ---------- Dashboard charts ---------- */
+.charts{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+@media(max-width:900px){.charts{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 22px}
+.chart-card h4{font-size:13px;color:var(--navy);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px}
+.ch{position:relative;height:280px}
+.ch-wide{height:250px}
+.grow-up{color:var(--green) !important}
+.grow-down{color:var(--red) !important}
+.locinfo{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:#E7EFE7;color:var(--navy);font-size:10px;font-weight:800;cursor:help;margin-left:5px;vertical-align:middle;position:relative}
+.locinfo:hover{background:var(--accent);color:#fff}
+.locinfo:hover::after{content:attr(data-tip);position:absolute;top:150%;left:0;background:var(--navy);color:#fff;padding:11px 14px;border-radius:10px;font-size:11.5px;font-weight:500;line-height:1.55;width:330px;white-space:normal;text-align:left;box-shadow:0 10px 28px rgba(18,28,20,.35);z-index:60;border-left:3px solid var(--accent)}
+.locinfo:hover::before{content:'';position:absolute;top:calc(150% - 6px);left:4px;border:6px solid transparent;border-bottom-color:var(--navy);z-index:61}
+
+/* ---------- Settings ---------- */
+.scard{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 26px;margin-bottom:20px}
+.scard h3{font-size:16px;color:var(--navy);margin-bottom:3px}
+.scard .desc{font-size:12.5px;color:var(--muted);margin-bottom:16px}
+.acct{display:flex;align-items:center;gap:16px;margin-bottom:6px}
+.acct .av2{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff}
+.acct .nm{font-size:16px;font-weight:700;color:var(--navy)}
+.acct .em{font-size:12.5px;color:var(--muted)}
+.fbta{width:100%;min-height:110px;font-family:Consolas,monospace;font-size:12px;border:1px solid var(--line);border-radius:10px;padding:12px;outline:none;resize:vertical}
+.fbta:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,150,44,.18)}
+.fb-status{display:inline-flex;align-items:center;gap:7px;padding:5px 13px;border-radius:20px;font-size:11.5px;font-weight:700;background:#eef1f6;color:#5a6478}
+.fb-status::before{content:'';width:8px;height:8px;border-radius:50%;background:#98a3bd}
+.fb-status.ok{background:#e2f7ee;color:#0b7a52}.fb-status.ok::before{background:var(--green)}
+.fb-status.err{background:#fdecec;color:var(--red)}.fb-status.err::before{background:var(--red)}
+
+/* ---------- Upload zone ---------- */
+.drop{border:2px dashed #B9CBBB;border-radius:var(--radius);background:linear-gradient(180deg,#fff,#F7FAF7);padding:56px 24px;text-align:center;cursor:pointer;transition:.2s}
+.drop:hover,.drop.over{border-color:var(--accent);background:#FBF7EC}
+.drop .ic{font-size:44px;margin-bottom:10px}
+.drop h2{font-size:20px;color:var(--navy);margin-bottom:6px}
+.drop p{color:var(--muted);font-size:13.5px}
+.drop .fmt{margin-top:14px;font-size:11px;color:#93A695;letter-spacing:.5px}
+
+/* ---------- KPI cards ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:22px 0}
+.kpi{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;border-left:4px solid var(--accent);animation:pop .35s ease}
+.kpi:nth-child(2){border-left-color:#3E6845} .kpi:nth-child(3){border-left-color:var(--green)} .kpi:nth-child(4){border-left-color:#5A6B5D}
+.kpi .lbl{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600}
+.kpi .val{font-size:26px;font-weight:800;color:var(--navy);margin-top:4px}
+.kpi .sub{font-size:11.5px;color:var(--muted);margin-top:2px}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---------- Toolbar ---------- */
+.toolbar{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:18px}
+.search{flex:1;min-width:230px;position:relative}
+.search input{width:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;outline:none;transition:.15s}
+.search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,150,44,.18)}
+.search .ic{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+select{padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;color:var(--ink);background:#fff;outline:none;cursor:pointer;min-width:150px}
+select:focus{border-color:var(--accent)}
+.chip-count{font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+
+/* ---------- LOB chips & multiselect dropdowns ---------- */
+#lobNav{margin:2px 0 8px;padding-left:14px;border-left:2px solid var(--line);margin-left:22px;display:none;flex-direction:column;gap:2px}
+#lobNav.open{display:flex;animation:pop .2s ease}
+.sub-item{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:8px 11px;border:none;background:none;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;text-align:left}
+.sub-item:hover{background:#F0F5F0;color:var(--navy)}
+.sub-item.active{background:#E7EFE7;color:var(--navy);font-weight:800}
+.sub-item .cnt{font-size:10.5px;background:#EEF1F6;color:var(--muted);border-radius:10px;padding:1px 8px;font-weight:700}
+.sub-item.active .cnt{background:var(--accent);color:#fff}
+.msdd{position:relative;min-width:168px}
+.msdd > button{width:100%;padding:10px 28px 10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fff;cursor:pointer;text-align:left;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msdd > button::after{content:'▾';position:absolute;right:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px}
+.msdd.open > button{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,150,44,.15)}
+.msdd .pnl{display:none;position:absolute;top:112%;left:0;z-index:70;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(31,45,34,.2);min-width:240px;max-height:262px;overflow:auto;padding:7px}
+.msdd.open .pnl{display:block}
+.msdd .pnl label{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;border-radius:7px;font-size:12.5px;cursor:pointer;line-height:1.35;white-space:nowrap}
+.msdd .pnl label:hover{background:#F0F5F0}
+.msdd .pnl input{accent-color:var(--navy);margin-top:1px;flex-shrink:0}
+.msdd .clr{font-size:11px;color:var(--accent);cursor:pointer;padding:6px 9px;font-weight:800;letter-spacing:.3px}
+.msdd .clr:hover{text-decoration:underline}
+.msdd .grp{font-size:10px;font-weight:800;text-transform:uppercase;color:var(--accent);padding:9px 9px 3px;letter-spacing:.8px;border-top:1px solid var(--line);margin-top:4px}
+.msdd .grp:first-of-type{border-top:none;margin-top:0}
+
+/* ---------- Table ---------- */
+.grid-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.tbl-scroll{overflow:auto;max-height:62vh}
+#tbl{width:100%;border-collapse:collapse;font-size:13px;min-width:880px}
+#tbl thead th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;padding:13px 14px;font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;z-index:5}
+#tbl thead th:hover{background:var(--navy2)}
+#tbl thead th .arrow{font-size:10px;color:var(--accent2);margin-left:4px}
+#tbl tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink)}
+#tbl tbody tr{transition:background .12s;cursor:pointer}
+#tbl tbody tr:hover{background:#F5F1E3}
+#tbl tbody tr:nth-child(even){background:#F7FAF7}
+#tbl tbody tr:nth-child(even):hover{background:#F5F1E3}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-new{background:#e1f0ff;color:#1e64c8}.b-renew{background:#e2f7ee;color:#0b7a52}
+.b-port{background:#f3e8ff;color:#7c3aed}.b-roll{background:#fff2df;color:#b45309}
+.b-other{background:#eef1f6;color:#5a6478}
+.rate{font-weight:800;color:var(--navy);white-space:pre-line}
+.ratebar{height:5px;border-radius:3px;background:#E7EFE7;margin-top:5px;width:90px;overflow:hidden}
+.ratebar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.rate-hi{color:var(--green)} .rate-zero{color:var(--red)}
+.notes{max-width:320px;color:var(--muted);font-size:12px;line-height:1.45}
+.insurer{font-weight:700;color:var(--navy)}
+.empty{padding:60px;text-align:center;color:var(--muted)}
+.hidden{display:none !important}
+
+/* ---------- Modal ---------- */
+.overlay{position:fixed;inset:0;background:rgba(18,28,20,.55);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(3px)}
+.modal{background:#fff;border-radius:16px;max-width:640px;width:92%;max-height:84vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:pop .25s ease}
+.modal .mh{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:20px 24px;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:flex-start}
+.modal .mh h3{font-size:17px} .modal .mh p{font-size:12px;color:#C7D6C9;margin-top:3px}
+.modal .close{background:rgba(255,255,255,.15);border:none;color:#fff;width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:15px}
+.modal .mb{padding:22px 24px}
+.frow{display:flex;border-bottom:1px solid var(--line);padding:10px 0;gap:16px}
+.frow .k{width:190px;flex-shrink:0;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:700;padding-top:2px}
+.frow .v{font-size:14px;white-space:pre-line}
+footer{text-align:center;color:#93A695;font-size:12px;margin-top:34px}
+.toast{position:fixed;bottom:26px;right:26px;background:var(--navy);color:#fff;padding:13px 20px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:200;animation:pop .3s ease}
+@media(max-width:760px){main{padding:18px 14px}.hd h1{font-size:15px}}
+
+/* ---------- Login ---------- */
+body.locked header, body.locked main, body.locked #sidebar{display:none}
+body.viewer #btnReset, body.viewer #btnUploadHd, body.viewer #btnAddRow, body.viewer .drop, body.viewer #pubBar{display:none !important}
+#viewerNote{display:none}
+body.viewer #viewerNote{display:block}
+#loginPage{display:none}
+body.locked #loginPage{display:flex;min-height:100vh;align-items:center;justify-content:center;background:linear-gradient(135deg,#2D4E31 0%,#3E6845 55%,#4E7A54 100%);position:relative;overflow:hidden}
+#loginPage::before,#loginPage::after{content:'';position:absolute;border-radius:50%;filter:blur(2px)}
+#loginPage::before{width:420px;height:420px;background:radial-gradient(circle,rgba(224,183,90,.22),transparent 70%);top:-120px;right:-80px}
+#loginPage::after{width:520px;height:520px;background:radial-gradient(circle,rgba(224,183,90,.20),transparent 70%);bottom:-180px;left:-120px}
+.login-card{background:#fff;border-radius:20px;box-shadow:0 24px 70px rgba(0,0,0,.45);width:400px;max-width:92%;padding:38px 36px;position:relative;z-index:2;animation:pop .4s ease}
+.login-card .lg{margin:0 auto 18px;text-align:center}
+.login-card .lg img{max-width:150px;width:100%;height:auto}
+.login-card h2{text-align:center;font-size:20px;color:var(--navy)}
+.login-card .sub{text-align:center;font-size:12px;color:var(--muted);margin:5px 0 24px;letter-spacing:.6px;text-transform:uppercase}
+.fld{margin-bottom:15px}
+.fld label{display:block;font-size:11.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px}
+.fld input,.fld select{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font-size:14px;outline:none;transition:.15s}
+.fld input:focus,.fld select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,150,44,.18)}
+.login-btn{width:100%;padding:13px;border:none;border-radius:10px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;font-size:14.5px;font-weight:700;cursor:pointer;margin-top:6px;transition:.18s;letter-spacing:.4px}
+.login-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(31,45,34,.4)}
+.login-err{background:#fdecec;color:var(--red);border:1px solid #f5c2c2;border-radius:9px;padding:10px 13px;font-size:12.5px;margin-bottom:14px;display:none}
+.login-foot{text-align:center;font-size:11px;color:#93A695;margin-top:20px}
+.user-chip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:24px;padding:5px 14px 5px 6px}
+.user-chip .av{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff}
+.user-chip .un{font-size:12.5px;font-weight:600;line-height:1.15}
+.user-chip .ur{font-size:10px;color:#E0B75A;text-transform:uppercase;letter-spacing:.6px}
+.role-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.5px}
+.r-super{background:#F3E7C8;color:#8A6414}.r-admin{background:#e1f0ff;color:#1e64c8}.r-viewer{background:#eef1f6;color:#5a6478}
+.utable{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.utable th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#fff;background:var(--navy);padding:11px 13px;font-weight:700}
+.utable th:first-child{border-radius:9px 0 0 9px}
+.utable th:last-child{border-radius:0 9px 9px 0}
+.utable td{padding:11px 13px;border-bottom:1px solid var(--line)}
+.mini-btn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 10px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--red)}
+.mini-btn:hover{border-color:var(--red);background:#fdecec}
+.add-user{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:10px;margin-top:16px;padding-top:16px;border-top:2px dashed var(--line)}
+.add-user input,.add-user select{padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;outline:none}
+@media(max-width:640px){.add-user{grid-template-columns:1fr}}
+
+/* ---------- Mobile friendliness ---------- */
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:900px){ main{margin-left:0} }
+@media(max-width:760px){
+  header{padding:0 14px}
+  .hd{flex-wrap:wrap;height:auto;padding:9px 0;gap:8px}
+  .hd .spacer{display:none}
+  .hd h1{font-size:15px}
+  .btn{padding:8px 11px;font-size:12px}
+  .user-chip{padding:4px 10px 4px 5px}
+  .user-chip .ur{display:none}
+  .toolbar{padding:12px}
+  .mgrid{grid-template-columns:1fr}
+}
+/* DynLOB dynamic grid */
+.dl-shell{max-width:1400px;margin:0 auto;padding:22px 26px 60px;display:grid;grid-template-columns:290px minmax(0,1fr);gap:20px;align-items:start}
+.dl-shell>.dl-main{min-width:0}
+.dl-bar{display:none}
+.dl-filters{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 16px;position:sticky;top:82px;z-index:60}
+.dl-fp{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dl-fp b{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--navy)}
+.dl-clearall2{background:none;border:none;color:var(--accent);font-weight:800;font-size:11px;cursor:pointer}
+.dl-dd{position:relative;width:100%;margin-bottom:9px}
+.dl-dd>button{width:100%;padding:11px 30px 11px 12px;border:1px solid var(--line);border-radius:9px;font-size:13px;background:#fff;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.dl-dd>button::after{content:'\25BE';position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px}
+.dl-dd.open>button{border-color:var(--accent);box-shadow:0 0 0 3px rgba(201,150,44,.15)}
+.dl-pnl{display:none;position:absolute;top:110%;left:0;right:auto;z-index:80;min-width:100%;width:max-content;max-width:min(360px,86vw);background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(31,45,34,.2);max-height:320px;overflow:auto;padding:7px}
+.dl-dd.open .dl-pnl{display:block}
+.dl-pnl label{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;border-radius:7px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.dl-pnl label:hover{background:#F0F5F0}.dl-pnl input{accent-color:var(--navy);margin-top:1px}
+.dl-cl{font-size:11px;color:var(--accent);cursor:pointer;padding:6px 9px;font-weight:800}
+.dl-mss{width:calc(100% - 14px);margin:2px 7px 6px;padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:12.5px;outline:none}
+.dl-tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.dl-search{flex:1;min-width:200px;position:relative}
+.dl-search input{width:100%;padding:10px 12px 10px 34px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;outline:none}
+.dl-search span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.dl-count{font-size:12.5px;color:var(--muted);font-weight:600;background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 12px}
+.dl-chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}.dl-chips:empty{display:none}
+.dl-chip{display:inline-flex;align-items:center;gap:7px;background:#E7EFE7;color:var(--navy);border-radius:20px;padding:4px 6px 4px 12px;font-size:12px;font-weight:600}
+.dl-chip b{cursor:pointer;background:#fff;border-radius:50%;width:17px;height:17px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted)}
+.dl-chip.dl-clearall{background:none;color:var(--accent);font-weight:800;cursor:pointer}
+.dl-wrap{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.dl-scroll{overflow:auto;max-height:72vh}
+.dl-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.dl-tbl thead th{position:sticky;top:0;background:var(--navy);color:#fff;text-align:left;padding:11px 13px;font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600;white-space:nowrap;cursor:pointer;z-index:5}
+.dl-tbl tbody td{padding:10px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+.dl-tbl tbody tr:nth-child(even){background:#F7FAF7}.dl-tbl tbody tr:hover{background:#F5F1E3}
+.dl-rate{font-weight:800;color:var(--navy)}
+.dl-empty{padding:50px;text-align:center;color:var(--muted)}
+@media(max-width:880px){
+  .dl-shell{grid-template-columns:1fr;padding:14px 12px}
+  .dl-bar{display:block;margin-bottom:2px}
+  .dl-ftoggle{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:var(--navy);font-weight:700;font-size:14px;cursor:pointer;box-shadow:var(--shadow)}
+  .dl-filters{display:none;position:static}
+  .dl-shell.dl-open .dl-filters{display:block}
+}
+@media(max-width:640px){
+  .dl-tbl thead{display:none}.dl-tbl,.dl-tbl tbody{display:block}
+  .dl-tbl tbody tr{display:block;margin:0 8px 10px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff}
+  .dl-tbl tbody td{display:flex;justify-content:space-between;gap:12px;text-align:right;border-bottom:1px solid #EEF3EE}
+  .dl-tbl tbody td::before{content:attr(data-label);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:800;text-align:left}
+  .dl-tbl tbody td.dl-k0{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;text-align:left}
+  .dl-tbl tbody td.dl-k0::before{display:none}
+}
+
+#lobNav,#gridCaret{display:none!important}
+.dl-per{padding:1px 0;white-space:nowrap}.dl-per b{color:var(--accent);font-weight:800}.dl-per span{color:var(--muted);font-size:11px;margin-left:5px}.dl-rate-multi{line-height:1.35}
+</style>
+</head>
+<body class="locked">
+
+<!-- ================= LOGIN ================= -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="lg"><img src="data:image/png;base64,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" alt="Ideal Insurance Brokers Pvt. Ltd."></div>
+    <h2>Grid Matrix Portal</h2>
+    <div class="login-err" id="loginErr"></div>
+    <form id="loginForm">
+      <div class="fld"><label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="you@idealinsurance.in" required autocomplete="username"></div>
+      <div class="fld"><label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" required autocomplete="current-password"></div>
+      <button class="login-btn" type="submit">Sign In →</button>
+    </form>
+    <div style="text-align:center;margin-top:14px"><a href="#" id="forgotLink" style="font-size:12.5px;color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted)">Forgot password?</a></div>
+    <div class="login-foot">Ideal Insurance Brokers Pvt. Ltd · Authorized access only</div>
+  </div>
+</div>
+
+<header>
+  <div class="hd">
+    <button class="burger" id="burger" title="Toggle menu"><i></i><i></i><i></i></button>
+    <div class="logo"><img src="data:image/png;base64,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" alt="Ideal Insurance"></div>
+    <div><h1>Grid Matrix Portal</h1></div>
+    <div class="spacer"></div>
+    <div class="user-chip" id="userChip" title="Signed in">
+      <div class="av" id="uAv"></div>
+      <div><div class="un" id="uName"></div><div class="ur" id="uRole"></div></div>
+    </div>
+    <button class="btn btn-ghost" id="btnLogout" title="Sign out">Logout</button>
+  </div>
+</header>
+
+<aside id="sidebar">
+  <div class="nav-lbl">Menu</div>
+  <button class="nav-item active" id="navGrid" onclick="lobSel='';showPage('grid')"><span class="nic">▤</span> Grid Data</button>
+  <div id="lobNav"></div>
+  <button class="nav-item hidden" id="navReq" onclick="showPage('requests')"><span class="nic">✎</span> Approvals<span id="reqBadge" style="margin-left:auto;font-size:10px;font-weight:800;background:var(--accent);color:#fff;border-radius:20px;padding:1px 8px;display:none">0</span></button>
+  <button class="nav-item hidden" id="navMaster" onclick="showPage('masters')"><span class="nic">▦</span> Masters</button>
+  <button class="nav-item hidden" id="navLob" onclick="showPage('lobs')"><span class="nic">▥</span> LOB Grids</button>
+  <button class="nav-item" id="navSet" onclick="showPage('settings')"><span class="nic">⚙</span> Settings</button>
+</aside>
+
+<main>
+  <!-- Upload -->
+  <section id="uploadSec" class="hidden">
+    <div class="drop" id="drop">
+      <div class="ic">📊</div>
+      <h2>Drag &amp; drop your Excel grid here</h2>
+      <p>or click to browse — use the <b>Grid_Upload_Template.xlsx</b> format</p>
+      <div class="fmt">SUPPORTED: .XLSX · .XLS · .CSV &nbsp;|&nbsp; HEADER ROW AUTO-DETECTED</div>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>
+    <div id="viewerNote" class="scard" style="text-align:center;padding:48px 24px">
+      <div style="font-size:38px;margin-bottom:10px">🔒</div>
+      <h3 style="margin-bottom:6px">View-only access</h3>
+      <div class="desc">Your role does not permit uploading grids. Contact your administrator to update the data.</div>
+    </div>
+  </section>
+
+  <!-- Grid table -->
+  <section id="dash" class="hidden">
+    <div class="toolbar">
+      <div class="search"><span class="ic">🔎</span><input id="q" placeholder="Search insurer, product, notes…"></div>
+      <div class="msdd" id="fPlan"></div>
+      <div class="msdd" id="fIns"></div>
+      <div class="msdd" id="fBiz"></div>
+      <div class="msdd" id="fLoc"></div>
+      <button class="btn btn-accent" id="btnAddRow" onclick="openAddRow()" style="white-space:nowrap">＋ Add Insurer / Product</button>
+    </div>
+
+    <div class="grid-wrap">
+      <div class="tbl-scroll">
+        <table id="tbl">
+          <thead><tr id="thr"></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div class="empty hidden" id="empty">No rows match your filters.</div>
+    </div>
+  </section>
+
+  <!-- LOB Grids (unified manager: Health + Motor/Life/custom) -->
+  <section id="lobSec" class="hidden">
+    <div class="scard">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <h3 style="margin:0">Grids — Line of Business</h3>
+        <div style="flex:1"></div>
+        <select id="lobPick" onchange="lobPickChange()" style="min-width:180px"></select>
+        <button class="btn btn-accent" onclick="openAddLob()">＋ Add LOB</button>
+      </div>
+      <div class="desc" style="margin-top:8px">Pick a grid to download its template, upload the filled sheet, or edit its columns.</div>
+      <div id="lobActions" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"></div>
+      <div id="lobMeta" class="desc" style="margin-top:10px"></div>
+      <input type="file" id="lobFile" accept=".xlsx,.xls,.csv" hidden>
+      <input type="file" id="lobSeedFile" accept=".xlsx,.xls,.csv" hidden>
+    </div>
+    <div class="scard hidden" id="lobCfgCard">
+      <h3>Columns &amp; filters <span class="desc" style="font-weight:400">— toggle show / filter, set the effective dates, then Publish</span></h3>
+      <div id="lobCfg" style="overflow:auto"></div>
+      <div id="lobEffWrap" style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+        <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Effective From *</label>
+          <input type="date" id="lobEffFrom" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px"></div>
+        <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Effective To *</label>
+          <input type="date" id="lobEffTo" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px"></div>
+        <button class="btn btn-accent" onclick="publishLob()">Publish changes</button>
+      </div>
+      <div class="desc" id="lobEffHint" style="margin-top:8px">Date range this commission applies to (mandatory). Another upload for the <b>same month</b> stacks its rate onto each product; a <b>new month</b> archives the previous month below (downloadable).</div>
+    </div>
+    <div class="scard hidden" id="lobPreviewCard">
+      <h3 id="lobPreviewName">Preview</h3>
+      <div class="dl-shell" id="lobPreviewHost"></div>
+    </div>
+    <div class="scard hidden" id="lobArchiveCard">
+      <h3>Previous months <span class="desc" style="font-weight:400">— archived grids for this LOB</span></h3>
+      <div id="lobArchiveList" class="desc">No archived months yet.</div>
+    </div>
+  </section>
+
+  <!-- Masters -->
+  <section id="mastersSec" class="hidden">
+    <div class="scard">
+      <h3>Insurers Master</h3>
+      <div class="desc">Insurers available in the Add-row and viewer suggestion dropdowns.</div>
+      <div id="insHost" style="overflow:auto;margin-top:10px"><div class="desc">None yet.</div></div>
+      <div class="add-user" style="grid-template-columns:1fr auto">
+        <input id="newIns" placeholder="Insurer name">
+        <button class="btn btn-accent" onclick="addMaster('insurers')">+ Add</button>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:2px dashed var(--line);display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="dlMasterTemplate('insurers')">⬇ Sample Template</button>
+        <button class="btn btn-accent" onclick="document.getElementById('bulkInsFile').click()">⬆ Bulk Upload</button>
+        <input type="file" id="bulkInsFile" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+    </div>
+    <div class="scard">
+      <h3>Products / Plans Master</h3>
+      <div class="desc">Products / plans available in the Add-row and viewer suggestion dropdowns.</div>
+      <div id="prodHost" style="overflow:auto;margin-top:10px"><div class="desc">None yet.</div></div>
+      <div class="add-user" style="grid-template-columns:1fr auto">
+        <input id="newProd" placeholder="Product / plan name">
+        <button class="btn btn-accent" onclick="addMaster('products')">+ Add</button>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:2px dashed var(--line);display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="dlMasterTemplate('products')">⬇ Sample Template</button>
+        <button class="btn btn-accent" onclick="document.getElementById('bulkProdFile').click()">⬆ Bulk Upload</button>
+        <input type="file" id="bulkProdFile" accept=".xlsx,.xls,.csv" hidden>
+      </div>
+    </div>
+  </section>
+
+  <!-- Approvals -->
+  <section id="reqSec" class="hidden">
+    <div class="scard">
+      <h3>Rate Approval Requests</h3>
+      <div class="desc">Viewers submit missing commission rates here. Approve or reject &mdash; the decision shows back to them in the public viewer.</div>
+      <div id="reqHost" style="overflow:auto;margin-top:12px"><div class="desc">No requests yet.</div></div>
+    </div>
+  </section>
+
+  <!-- Settings -->
+  <section id="settingsSec" class="hidden">
+    <div class="scard">
+      <h3>My Account</h3>
+      <div class="desc">Your profile and sign-in details</div>
+      <div class="acct">
+        <div class="av2" id="setAv"></div>
+        <div><div class="nm" id="setName"></div><div class="em" id="setEmail"></div>
+        <span class="role-tag r-viewer" id="setRole" style="margin-top:4px"></span></div>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:2px dashed var(--line)">
+        <b style="font-size:13px;color:var(--navy)">Change my password</b>
+        <div class="add-user" style="border:none;padding-top:10px;margin-top:0;grid-template-columns:1fr 1fr auto">
+          <input id="cpOld" type="password" placeholder="current password">
+          <input id="cpNew" type="password" placeholder="new password (min 6)">
+          <button class="btn btn-outline" onclick="changePass()">Update</button>
+        </div>
+      </div>
+    </div>
+    <div class="scard hidden" id="umCard">
+      <h3>User Management</h3>
+      <div class="desc">Add, review and remove portal users — Super Admin only</div>
+      <div id="umHost"></div>
+      <div class="add-user">
+        <input id="nuEmail" type="email" placeholder="email@company.in">
+        <input id="nuPass" type="password" placeholder="password">
+        <select id="nuRole"><option>Viewer</option><option>Admin</option></select>
+        <button class="btn btn-accent" onclick="addUser()">+ Add</button>
+      </div>
+      <div style="margin-top:18px;padding-top:16px;border-top:2px dashed var(--line)">
+        <b style="font-size:13px;color:var(--navy)">Bulk user upload</b>
+        <div class="desc" style="margin:4px 0 12px">Excel/CSV with columns: <b>Email, Password, Role</b> (Admin or Viewer)</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="dlUserTemplate()">⬇ Sample Template</button>
+          <button class="btn btn-accent" onclick="document.getElementById('bulkFile').click()">⬆ Upload Users</button>
+          <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" hidden>
+        </div>
+      </div>
+    </div>
+    <div class="scard hidden" id="histCard">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <h3 style="margin:0">Month Wise Data</h3>
+        <div style="flex:1"></div>
+        <input type="month" id="repFrom" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px">
+        <span style="color:var(--muted);font-size:12px">to</span>
+        <input type="month" id="repTo" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:12.5px">
+        <button class="btn btn-outline" id="btnHistPdf">⬇ Monthly Report (Excel)</button>
+      </div>
+      <div id="histHost" style="overflow:auto"><div class="desc">No snapshots yet — publish a grid to create the first one.</div></div>
+    </div>
+    <div class="scard hidden" id="fbCard">
+      <h3>Cloud Sync — Firebase <span class="fb-status" id="fbStatus" style="margin-left:10px">Not connected</span></h3>
+      <div class="desc">Store the grid, users and monthly history in Firestore so the whole team shares one live database across devices.</div>
+      <textarea class="fbta" id="fbCfg" placeholder='Paste your firebaseConfig here, e.g.
+{
+  "apiKey": "AIza...",
+  "authDomain": "your-app.firebaseapp.com",
+  "projectId": "your-app",
+  "storageBucket": "your-app.appspot.com",
+  "messagingSenderId": "123456",
+  "appId": "1:123:web:abc"
+}'></textarea>
+      <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-accent" id="fbConnect">☁ Connect &amp; Save</button>
+        <button class="btn btn-outline" id="fbDisc">Disconnect</button>
+      </div>
+      <div class="desc" style="margin-top:14px">Setup (once): <b>console.firebase.google.com</b> → Add project → Build → Firestore Database → Create (test mode) → Project settings → Your apps → Web app → copy the config object above.</div>
+    </div>
+  </section>
+
+  <footer>
+    <div style="font-size:10.5px;opacity:.55">Developed by Abhra Bose</div>
+  </footer>
+</main>
+
+<div id="modalHost"></div>
+
+<script>
+/* ===== DynLOB: shared dynamic-grid engine for uploaded LOB templates (Motor, Life, …) ===== */
+window.DynLOB=(function(){
+  const S={host:null,cols:[],rows:[],view:[],rateCol:-1,cfg:[],sel:{},q:'',sortKey:-1,sortAsc:true};
+  const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  /* ---- parse + classify (admin upload) ---- */
+  function parse(wb){
+    const sheet=wb.SheetNames[0];
+    const aoa=XLSX.utils.sheet_to_json(wb.Sheets[sheet],{header:1,defval:'',raw:false});
+    let hr=-1;
+    for(let i=0;i<Math.min(aoa.length,15);i++){const cells=aoa[i].map(c=>String(c==null?'':c).trim()).filter(Boolean);if(cells.length<2)continue;const num=cells.filter(c=>/^-?\d+(\.\d+)?%?$/.test(c)).length;if(num/cells.length<0.4){hr=i;break;}}
+    if(hr<0){hr=aoa.findIndex(r=>r.some(c=>String(c).trim()!==''));if(hr<0)hr=0;}
+    let header=aoa[hr].map(c=>String(c).trim());let last=header.length-1;while(last>0&&!header[last])last--;header=header.slice(0,last+1);
+    const rows=[];for(let i=hr+1;i<aoa.length;i++){const r=aoa[i];if(!String(r[0]||'').trim())continue;rows.push(header.map((_,c)=>String(r[c]==null?'':r[c]).trim()));}
+    return {columns:header,rows};
+  }
+  function classify(cols,rows){
+    const n=cols.length,dist=Array.from({length:n},()=>new Set()),fill=new Array(n).fill(0);
+    rows.forEach(r=>{for(let i=0;i<n;i++){const v=r[i];if(v!==''&&v!=null){fill[i]++;if(dist[i].size<400)dist[i].add(v);}}});
+    let rateCol=-1,bs=0;
+    for(let i=0;i<n;i++){let num=0,tot=0;rows.forEach(r=>{const v=r[i];if(v!==''&&v!=null){tot++;if(/^\s*\d+(?:\.\d+)?\s*%?\s*$/.test(v))num++;}});if(tot<3)continue;const ratio=num/tot;if(ratio<0.6)continue;const kw=/commission|payout|\brate\b|\bpo\b/i.test(cols[i])?0.3:0;if(ratio+kw>bs){bs=ratio+kw;rateCol=i;}}
+    const cfg=cols.map((h,i)=>{const d=dist[i].size;const meta=/note|caps|condition|effective|date|remark/i.test(h);const hideDef=/parameter/i.test(h);const single=fill[i]>0&&d<=1;const avg=[...dist[i]].reduce((a,v)=>a+String(v).length,0)/(d||1);const desc=avg>28;return{show:fill[i]>0&&!hideDef&&!single,filter:i!==rateCol&&!meta&&!hideDef&&!desc&&d>=2&&d<=300};});
+    return {rateCol,cfg};
+  }
+  function build(name,wb){const {columns,rows}=parse(wb);const {rateCol,cfg}=classify(columns,rows);return{name,columns,rows,rateCol,cfg};}
+  /* ---- render ---- */
+  const q=sel=>S.host.querySelector(sel);
+  function availRows(except){return S.rows.filter(r=>{for(const k in S.sel){if(String(k)===String(except))continue;if(S.sel[k].size&&!S.sel[k].has(r[k]))return false;}return true;});}
+  function distinctOf(i){const s=new Set();availRows(i).forEach(r=>{if(r[i]!==''&&r[i]!=null)s.add(r[i]);});return [...s].sort((a,b)=>String(a).localeCompare(String(b)));}
+  function refreshOptions(){S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd||dd.classList.contains('open'))return;const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';dd.querySelector('.dl-pnl').innerHTML=`<div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}`+vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('');});}
+  function mount(host){S.host=host;host.innerHTML=`
+    <div class="dl-bar"><button class="dl-ftoggle" onclick="DynLOB.toggle()">⚙ Filters</button></div>
+    <aside class="dl-filters"><div class="dl-fp"><b>Filters</b><button class="dl-clearall2" onclick="DynLOB.reset()">Reset all</button></div><div class="dl-fhost"></div></aside>
+    <main class="dl-main">
+      <div class="dl-tools"><div class="dl-search"><span>🔎</span><input placeholder="Search any column…" oninput="DynLOB.search(this.value)"></div><span class="dl-count"></span></div>
+      <div class="dl-chips"></div>
+      <div class="dl-wrap"><div class="dl-scroll"><table class="dl-tbl"><thead><tr class="dl-thr"></tr></thead><tbody class="dl-tb"></tbody></table></div><div class="dl-empty" style="display:none">No rows match your filters.</div></div>
+    </main>`;}
+  function load(ds){S.cols=ds.columns||[];S.rows=(ds.rows||[]).slice();S.rateCol=ds.rateCol==null?-1:ds.rateCol;S.cfg=(ds.cfg&&ds.cfg.length)?ds.cfg:S.cols.map(()=>({show:true,filter:false}));S.sel={};S.q='';S.sortKey=-1;const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
+  function buildFilters(){const host=q('.dl-fhost');const parts=[];S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;if(!S.sel[i])S.sel[i]=new Set();const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';parts.push(`<div class="dl-dd" data-i="${i}"><button type="button" onclick="DynLOB.open(${i})"></button><div class="dl-pnl"><div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}${vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('')}</div></div>`);});host.innerHTML=parts.join('')||'<div style="color:var(--muted);font-size:13px">No filters for this grid.</div>';S.cols.forEach((h,i)=>{if(S.cfg[i]&&S.cfg[i].filter)label(i);});}
+  function label(i){const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd)return;const n=S.sel[i].size;dd.querySelector('button').textContent=n?S.cols[i]+' · '+n:'All '+S.cols[i];}
+  function open(i){S.host.querySelectorAll('.dl-dd.open').forEach(d=>{if(d.dataset.i!=i)d.classList.remove('open');});q(`.dl-dd[data-i="${i}"]`).classList.toggle('open');}
+  function pick(i,el){if(el.checked)S.sel[i].add(el.dataset.v);else S.sel[i].delete(el.dataset.v);label(i);apply();refreshOptions();}
+  function clr(i){S.sel[i].clear();q(`.dl-dd[data-i="${i}"]`).querySelectorAll('input[type=checkbox]').forEach(x=>x.checked=false);label(i);apply();refreshOptions();}
+  function msearch(i,val){val=String(val).toLowerCase();q(`.dl-dd[data-i="${i}"]`).querySelectorAll('label').forEach(l=>l.style.display=l.dataset.t.includes(val)?'':'none');}
+  function reset(){Object.values(S.sel).forEach(s=>s.clear());S.q='';const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
+  function search(v){S.q=String(v).toLowerCase();apply();}
+  const fmt=v=>{const m=String(v).match(/^\s*(\d+(?:\.\d+)?)\s*%?\s*$/);return m?(+m[1])+'%':v;};
+  function perHTML(v){return String(v).split(/\s*~~\s*/).filter(Boolean).map(function(p){var kv=p.split(/\s*@@\s*/);var r=kv[0]||'',lab=kv[1]||'';return '<div class="dl-per"><b>'+esc(fmt(r))+'</b>'+(lab?' <span>'+esc(lab)+'</span>':'')+'</div>';}).join('');}
+  function apply(){const terms=S.q.split(/\s+/).filter(Boolean);S.view=S.rows.filter(r=>{for(const i in S.sel){if(S.sel[i].size&&!S.sel[i].has(r[i]))return false;}if(!terms.length)return true;const hay=r.join(' ').toLowerCase();return terms.every(t=>hay.includes(t));});if(S.sortKey>=0){S.view.sort((a,b)=>{const x=a[S.sortKey],y=b[S.sortKey],nx=parseFloat(x),ny=parseFloat(y);let c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:String(x).localeCompare(String(y));return S.sortAsc?c:-c;});}render();}
+  function sortBy(i){S.sortAsc=(S.sortKey===i)?!S.sortAsc:true;S.sortKey=i;apply();}
+  const CAP=5000;
+  function render(){const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const shown=S.view.slice(0,CAP);q('.dl-count').textContent=S.view.length>CAP?`showing ${CAP} of ${S.view.length}`:S.view.length+' of '+S.rows.length+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr>'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${esc(val)}</td>`;}).join('')+'</tr>').join('');chips();}
+  function chips(){const host=q('.dl-chips');const items=[];Object.keys(S.sel).forEach(i=>{[...S.sel[i]].forEach(v=>{items.push(`<span class="dl-chip" data-i="${i}" data-v="${esc(v)}">${esc(S.cols[i])}: ${esc(v)} <b>✕</b></span>`);});});host.innerHTML=items.length?items.join('')+'<span class="dl-chip dl-clearall">Clear all</span>':'';}
+  function toggle(){S.host.classList.toggle('dl-open');}
+  document.addEventListener('click',e=>{const c=e.target.closest('.dl-chip');if(!c||!S.host||!S.host.contains(c))return;if(c.classList.contains('dl-clearall')){reset();return;}const i=c.dataset.i,v=c.dataset.v;if(S.sel[i]){S.sel[i].delete(v);buildFilters();apply();}});
+  document.addEventListener('click',e=>{if(S.host&&!e.target.closest('.dl-dd'))S.host.querySelectorAll('.dl-dd.open').forEach(d=>d.classList.remove('open'));});
+  return {mount,load,build,open,pick,clear:clr,msearch,reset,search,sort:sortBy,toggle,state:S};
+})();
+
+</script>
+<script>
+/* ================= AUTH ================= */
+const SUPER_ADMIN = 'abhra.b@idealinsurance.in';
+const DEFAULT_SUPER_PASS = 'Admin@123';
+const $$ = id => document.getElementById(id);
+
+async function hash(s){
+  if (window.crypto && crypto.subtle){
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gmp|' + s));
+    return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('');
+  }
+  let h = 5381; const t = 'gmp|' + s;
+  for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) >>> 0;
+  return 'djb2_' + h.toString(16);
+}
+function getUsers(){ try{ return JSON.parse(localStorage.getItem('gmp_users')) || []; }catch(e){ return []; } }
+function saveUsers(u){ localStorage.setItem('gmp_users', JSON.stringify(u)); cloudSaveUsers(u); }
+
+/* ================= FIREBASE CLOUD SYNC ================= */
+let db = null, gridUnsub = null, cloudOn = false, applyingCloud = false;
+function loadScript(src){ return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = () => rej(new Error('Could not load ' + src)); document.head.appendChild(s); }); }
+function setFbStatus(t, cls){ const e = $$('fbStatus'); if (e){ e.textContent = t; e.className = 'fb-status ' + (cls||''); e.style.marginLeft = '10px'; } }
+async function connectCloud(cfg){
+  try{
+    setFbStatus('Connecting…', '');
+    if (!window.firebase){
+      await loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js');
+      await loadScript('https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js');
+    }
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    db = firebase.firestore();
+    await db.collection('gmp_meta').doc('ping').set({ts: Date.now()});   // connectivity + rules test
+    cloudOn = true;
+    localStorage.setItem('gmp_fbcfg', JSON.stringify(cfg));
+    setFbStatus('Connected · ' + cfg.projectId, 'ok');
+    await syncUsersWithCloud();
+    subscribeGrid();
+    subscribeRequests();
+    subscribeMasters();
+    subscribeLobs();
+    subscribeLobArchives();
+    renderHistory();
+    toast('☁ Firebase connected');
+  }catch(e){
+    cloudOn = false;
+    setFbStatus('Error: ' + (e.message||'connection failed').slice(0,60), 'err');
+    toast('❌ Firebase: ' + (e.message||'connection failed'));
+  }
+}
+async function syncUsersWithCloud(){
+  const snap = await db.collection('gmp_users').get();
+  const cloud = {};
+  snap.forEach(d => cloud[d.id.toLowerCase()] = {email: d.id, ...d.data()});
+  const local = getUsers();
+  const merged = Object.values(cloud);
+  const toPush = local.filter(u => !cloud[u.email.toLowerCase()]);
+  merged.push(...toPush);
+  localStorage.setItem('gmp_users', JSON.stringify(merged));   // direct — avoid echo loop
+  for (const u of toPush) await db.collection('gmp_users').doc(u.email).set({name: u.name, role: u.role, hash: u.hash});
+  renderUsers();
+}
+function cloudSaveUsers(users){
+  if (!cloudOn) return;
+  users.forEach(u => db.collection('gmp_users').doc(u.email).set({name: u.name, role: u.role, hash: u.hash}).catch(()=>{}));
+}
+function cloudDeleteUser(email){ if (cloudOn) db.collection('gmp_users').doc(email).delete().catch(()=>{}); }
+function subscribeGrid(){
+  if (gridUnsub) gridUnsub();
+  gridUnsub = db.collection('gmp').doc('grid').onSnapshot(doc => {
+    const d = doc.data();
+    if (!d || !d.rowsJson) return;
+    let localTs = 0; try{ localTs = JSON.parse(localStorage.getItem('gmp_grid')).ts || 0; }catch(e){}
+    if (d.ts <= localTs) return;
+    applyingCloud = true;
+    try{
+      rows = JSON.parse(d.rowsJson);
+      fileName = d.file || '';
+      localStorage.setItem('gmp_grid', JSON.stringify({file: fileName, ts: d.ts, rows}));
+      buildData();
+      toast('☁ Grid updated from cloud (' + rows.length + ' rules)');
+    }catch(e){}
+    applyingCloud = false;
+  }, () => setFbStatus('Sync error — check Firestore rules', 'err'));
+  db.collection('gmp').doc('grid').get().then(doc => { if (!doc.exists && rows.length) cloudSaveGrid(); }).catch(()=>{});
+}
+function cloudSaveGrid(){
+  if (!cloudOn || applyingCloud) return;
+  const ts = Date.now(), month = new Date().toISOString().slice(0,7);
+  const rated = rows.map(r => pct(r[5])).filter(p => p !== null);
+  db.collection('gmp').doc('grid').set({file: fileName, ts, rowsJson: JSON.stringify(rows)}).catch(()=>{});
+  db.collection('gmp_history').doc(month).set({
+    month, ts, file: fileName, rowsJson: JSON.stringify(rows), rules: rows.length,
+    insurers: [...new Set(rows.map(r => r[0]))].length,
+    avgRate: rated.length ? +(rated.reduce((a,b) => a+b, 0)/rated.length).toFixed(2) : null,
+    by: currentUser() ? currentUser().email : '',
+    uploads: firebase.firestore.FieldValue.increment(1)
+  }, {merge: true}).catch(()=>{});
+}
+let histItems = [];
+async function renderHistory(){
+  const host = $$('histHost');
+  let items = [];
+  if (cloudOn){
+    try{
+      const snap = await db.collection('gmp_history').orderBy('month','desc').limit(24).get();
+      snap.forEach(d => items.push(d.data()));
+    }catch(e){}
+  }
+  if (!items.length){
+    try{
+      const h = JSON.parse(localStorage.getItem('gmp_history') || '[]');
+      const byM = {};
+      h.forEach(x => { byM[x.month] = {...x, uploads: (byM[x.month] ? byM[x.month].uploads : 0) + 1}; });
+      items = Object.values(byM).sort((a,b) => b.month.localeCompare(a.month));
+    }catch(e){}
+  }
+  histItems = items;
+  if (!items.length){ host.innerHTML = '<div class="desc">No snapshots yet — upload a grid to create the first one.</div>'; return; }
+  host.innerHTML = `<table class="utable" style="min-width:640px"><thead><tr>
+    <th>Month</th><th>Last Upload</th><th>File</th><th>Rules</th><th>Insurers</th><th>Avg Rate</th><th>Uploads</th><th>By</th></tr></thead><tbody>` +
+    items.map(x => `<tr>
+      <td><b>${esc(x.month)}</b></td>
+      <td>${x.ts ? new Date(x.ts).toLocaleDateString() : '—'}</td>
+      <td style="color:var(--muted);font-size:12px">${esc(x.file||'—')}</td>
+      <td>${x.rules ?? '—'}</td><td>${x.insurers ?? '—'}</td>
+      <td class="rate">${x.avgRate != null ? x.avgRate + '%' : '—'}</td>
+      <td>${x.uploads ?? 1}</td>
+      <td style="color:var(--muted);font-size:12px">${esc(x.by||'—')}</td></tr>`).join('') + '</tbody></table>';
+}
+
+/* ---------- Rate approval requests (Admin) ---------- */
+let reqItems = [], reqUnsub = null;
+function subscribeRequests(){
+  if (!cloudOn || !db) return;
+  if (reqUnsub) reqUnsub();
+  reqUnsub = db.collection('gmp_requests').orderBy('ts','desc').limit(200).onSnapshot(snap => {
+    reqItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const pend = reqItems.filter(q => (q.status||'Pending') === 'Pending').length;
+    const b = $$('reqBadge'); if (b){ b.textContent = pend; b.style.display = pend ? 'inline-block' : 'none'; }
+    renderRequests();
+  }, () => {});
+}
+function renderRequests(){
+  const host = $$('reqHost'); if (!host) return;
+  if (!reqItems.length){ host.innerHTML = '<div class="desc">No requests yet.</div>'; return; }
+  host.innerHTML = `<table class="utable" style="min-width:780px"><thead><tr>
+    <th>Submitted</th><th>Insurer</th><th>Product / Plan</th><th>Business</th><th>Location</th><th>Proposed Rate</th><th>By</th><th>Status</th><th>Action</th></tr></thead><tbody>` +
+    reqItems.map(q => {
+      const st = q.status || 'Pending';
+      const act = st === 'Pending'
+        ? `<button class="mini-btn" style="color:var(--green)" onclick="openApproveModal('${q.id}')">✓ Approve…</button> <button class="mini-btn" onclick="rejectReq('${q.id}')">✕ Reject</button>`
+        : `<span style="font-size:11.5px;color:var(--muted)">${esc(String(st).toLowerCase())}${q.reviewedBy ? ' · ' + esc(q.reviewedBy) : ''}</span>`;
+      const bcls = st === 'Approved' ? 'b-renew' : st === 'Rejected' ? 'b-other' : 'b-roll';
+      return `<tr>
+        <td style="font-size:12px;color:var(--muted)">${q.ts ? new Date(q.ts).toLocaleDateString() : '—'}</td>
+        <td><b>${esc(q.insurer)}</b></td><td>${esc(q.product)}</td>
+        <td>${esc(q.business)||'—'}</td><td>${esc(q.location)||'—'}</td>
+        <td class="rate">${esc(q.rate)}</td><td>${esc(q.by)||'—'}</td>
+        <td><span class="badge ${bcls}">${esc(st)}</span></td>
+        <td style="white-space:nowrap">${act}</td></tr>`;
+    }).join('') + '</tbody></table>';
+}
+function decideReq(id, status){
+  if (!cloudOn || !db) return toast('⚠ Connect Firebase to manage requests.');
+  const by = currentUser() ? currentUser().email : '';
+  db.collection('gmp_requests').doc(id).set({ status, reviewedBy: by, reviewedTs: Date.now() }, { merge: true })
+    .then(() => toast(status === 'Approved' ? '✓ Approved' : '✕ Rejected'))
+    .catch(e => toast('❌ ' + (e.message||'failed')));
+}
+const _apLbl = 'display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px';
+const _apInp = 'width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;outline:none';
+function openApproveModal(id){
+  const q = reqItems.find(x => x.id === id); if (!q) return;
+  $$('modalHost').innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh"><div><h3>Approve rate — ${esc(q.insurer)}</h3><p>${esc(q.product)}${q.business ? ' · ' + esc(q.business) : ''}${q.location ? ' · ' + esc(q.location) : ''}</p></div>
+        <button class="close" onclick="closeModal()">✕</button></div>
+      <div class="mb">
+        <div class="frow"><div class="k">Suggested by</div><div class="v">${esc(q.by)||'—'}</div></div>
+        <div style="display:grid;grid-template-columns:1fr;gap:14px;margin-top:16px">
+          <div><label style="${_apLbl}">Commission rate (IDEAL)</label><input id="apRate" style="${_apInp}" value="${esc(q.rate)}"></div>
+          <div><label style="${_apLbl}">Sub-condition (optional)</label><input id="apSub" style="${_apInp}" placeholder="e.g. Senior Citizen / Long Term Policy"></div>
+          <div class="mgrid">
+            <div><label style="${_apLbl}">SI Slab: &lt; 10 Lac</label><input id="apSi1" style="${_apInp}" placeholder="e.g. 30%"></div>
+            <div><label style="${_apLbl}">SI Slab: ≥ 10 Lac</label><input id="apSi2" style="${_apInp}" placeholder="e.g. 35%"></div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
+          <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-accent" onclick="confirmApprove('${id}')">✓ Approve &amp; add to grid</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+function confirmApprove(id){
+  const q = reqItems.find(x => x.id === id); if (!q) return;
+  if (!cloudOn || !db) return toast('⚠ Connect Firebase to manage requests.');
+  const gv = x => ($$(x) ? $$(x).value.trim() : '');
+  const rate = gv('apRate') || q.rate, sub = gv('apSub'), si1 = gv('apSi1'), si2 = gv('apSi2');
+  const by = currentUser() ? currentUser().email : '';
+  db.collection('gmp_requests').doc(id).set({ status: 'Approved', reviewedBy: by, reviewedTs: Date.now(), rate, subCondition: sub, si10lt: si1, si10gte: si2 }, { merge: true })
+    .then(() => addApprovedToGrid({ ...q, rate, _sub: sub, _si1: si1, _si2: si2 }))
+    .catch(e => toast('❌ ' + (e.message||'failed')));
+  closeModal();
+}
+function addApprovedToGrid(q){
+  if (!q) return;
+  const loc = String(q.location||'').trim();
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const d = new Date(); const eff = MON[d.getMonth()] + '-' + d.getFullYear();
+  const same = (a,b) => String(a||'').trim().toLowerCase() === String(b||'').trim().toLowerCase();
+  const dup = rows.some(r => same(r[0],q.insurer) && same(r[1],q.product) && same(r[2],q.business) && same(r[5],q.rate) && same(r[3],loc||'All'));
+  if (dup){ toast('✓ Approved (already in grid)'); return; }
+  const row = new Array(11).fill('');
+  row[0] = q.insurer||''; row[1] = q.product||''; row[2] = q.business||''; row[3] = loc || 'All';
+  row[4] = q._sub || ''; row[5] = q.rate||''; row[6] = q._si1 || ''; row[7] = q._si2 || '';
+  row[8] = 'Approved suggestion · by ' + (q.by||''); row[9] = eff; row[10] = loc;
+  rows.push(row);
+  buildData();
+  persistGrid();
+  toast('✓ Approved & added to the grid');
+}
+function rejectReq(id){ decideReq(id, 'Rejected'); }
+
+/* ---------- Masters: Insurers & Products ---------- */
+let masters = { insurers: [], products: [] }, mastersUnsub = null;
+let lobs = {}, lobsUnsub = null, pendingLob = null, lobMounted = false;
+try{ const _m = JSON.parse(localStorage.getItem('gmp_masters')); if (_m){ masters.insurers = _m.insurers||[]; masters.products = _m.products||[]; } }catch(e){}
+function subscribeMasters(){
+  if (!cloudOn || !db) return;
+  if (mastersUnsub) mastersUnsub();
+  mastersUnsub = db.collection('gmp_meta').doc('masters').onSnapshot(doc => {
+    const d = doc.data() || {};
+    masters.insurers = Array.isArray(d.insurers) ? d.insurers : [];
+    masters.products = Array.isArray(d.products) ? d.products : [];
+    try{ localStorage.setItem('gmp_masters', JSON.stringify(masters)); }catch(e){}
+    renderMasters();
+    if (typeof buildData === 'function') buildData();
+  }, () => {});
+}
+function saveMasters(){
+  try{ localStorage.setItem('gmp_masters', JSON.stringify(masters)); }catch(e){}
+  if (cloudOn && db) db.collection('gmp_meta').doc('masters').set({ insurers: masters.insurers, products: masters.products }, { merge: true }).catch(() => {});
+  renderMasters();
+}
+function renderMasters(){
+  const draw = (type, hostId) => {
+    const host = $$(hostId); if (!host) return;
+    const arr = masters[type] || [];
+    host.innerHTML = arr.length
+      ? '<table class="utable" style="min-width:280px"><tbody>' + arr.map((v,i) => `<tr><td>${esc(v)}</td><td style="text-align:right"><button class="mini-btn" onclick="delMasterAt('${type}',${i})">✕ Remove</button></td></tr>`).join('') + '</tbody></table>'
+      : '<div class="desc">None yet.</div>';
+  };
+  draw('insurers','insHost'); draw('products','prodHost');
+}
+function addMaster(type){
+  const id = type === 'insurers' ? 'newIns' : 'newProd';
+  const el = $$(id); if (!el) return;
+  const v = el.value.trim(); if (!v) return toast('⚠ Enter a name first.');
+  if (masters[type].some(x => x.toLowerCase() === v.toLowerCase())) return toast('⚠ Already in the list.');
+  masters[type].push(v); el.value = '';
+  saveMasters(); toast('✓ Added to ' + type);
+}
+function delMasterAt(type, i){
+  if (i < 0 || i >= masters[type].length) return;
+  masters[type].splice(i, 1); saveMasters();
+}
+function dlMasterTemplate(type){
+  const head = type === 'insurers' ? 'Insurer' : 'Product / Plan';
+  const ex = type === 'insurers' ? ['HDFC Ergo','ICICI Lombard','Digit'] : ['Optima Secure','Health Shield','Two Wheeler Package'];
+  const ws = XLSX.utils.aoa_to_sheet([[head], ...ex.map(x => [x])]);
+  ws['!cols'] = [{wch:32}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, type === 'insurers' ? 'Insurers' : 'Products');
+  XLSX.writeFile(wb, (type === 'insurers' ? 'Insurers' : 'Products') + '_Master_Template.xlsx');
+}
+async function bulkMaster(type, f){
+  try{
+    const wb = XLSX.read(await f.arrayBuffer());
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:'' });
+    const seen = new Set(masters[type].map(x => x.toLowerCase()));
+    let added = 0;
+    for (const row of aoa){
+      const v = String(row[0]||'').trim();
+      if (!v || /^(insurer|product)/i.test(v)) continue;
+      if (seen.has(v.toLowerCase())) continue;
+      masters[type].push(v); seen.add(v.toLowerCase()); added++;
+    }
+    saveMasters();
+    toast(`✅ Bulk upload: ${added} added to ${type}`);
+  }catch(e){ toast('❌ Could not read file: ' + (e.message||'')); }
+}
+if ($$('bulkInsFile')) $$('bulkInsFile').onchange = e => { const f = e.target.files[0]; if (f) bulkMaster('insurers', f); e.target.value = ''; };
+if ($$('bulkProdFile')) $$('bulkProdFile').onchange = e => { const f = e.target.files[0]; if (f) bulkMaster('products', f); e.target.value = ''; };
+
+/* ---------- LOB Grids: unified manager (Health + dynamic Motor/Life/custom) ---------- */
+const HEALTH_ID='__health__';
+const DEFAULT_LOBS={
+  'motor-pvt-car':{id:'motor-pvt-car',name:'Motor Pvt Car',templateCols:["Insurer","Product / Plan","Parameter to check","Product Type","Age of vehicle","Policy Term","Vehicle Name","Business Type","Location","RTO","Premium","NCB","Fuel Type","CC","Base Commission Rate","PO calculated on","Conditions, Caps & Notes","Effective Date"]},
+  'life':{id:'life',name:'Life',templateCols:["Insurer","Category","Product","Variant","PPT","Policy Term","SI Band","First-Year Commission %","Renewal %","Notes"]}
+};
+function getLob(id){ return lobs[id] || DEFAULT_LOBS[id] || null; }
+function subscribeLobs(){
+  if(!cloudOn||!db) return;
+  if(lobsUnsub) lobsUnsub();
+  lobsUnsub=db.collection('gmp_lobs').onSnapshot(snap=>{ lobs={}; snap.forEach(d=>lobs[d.id]={id:d.id,...d.data()}); renderLobPick(); }, ()=>{});
+}
+function renderLobPick(){
+  const sel=$$('lobPick'); if(!sel) return; const cur=sel.value||HEALTH_ID;
+  const merged=Object.assign({},DEFAULT_LOBS,lobs);
+  const arr=Object.values(merged).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+  sel.innerHTML=`<option value="${HEALTH_ID}">Health</option>`+arr.map(l=>`<option value="${esc(l.id)}">${esc(l.name||l.id)}</option>`).join('');
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:HEALTH_ID;
+  lobPickChange();
+}
+function lobPickChange(){
+  const id=$$('lobPick').value, act=$$('lobActions'), meta=$$('lobMeta');
+  $$('lobPreviewCard').classList.add('hidden'); $$('lobCfgCard').classList.add('hidden'); pendingLob=null;
+  if($('lobEffFrom')) $('lobEffFrom').value=''; if($('lobEffTo')) $('lobEffTo').value='';
+  renderLobArchives();
+  if(id===HEALTH_ID){
+    act.innerHTML=`<button class="btn btn-outline" onclick="dlTemplate('Health', COLS)">⬇ Sample template</button>
+      <button class="btn btn-accent" onclick="fileIn.click()">⬆ Upload Excel</button>`;
+    meta.textContent='Health uses the built-in grid. Uploading replaces its data; view and manage rows in the Grid Data tab.';
+    return;
+  }
+  const l=getLob(id); if(!l){ act.innerHTML=''; meta.textContent=''; return; }
+  const tcols=(l.templateCols&&l.templateCols.length)?l.templateCols:(l.columns||[]);
+  const delBtn = lobs[id] ? `<button class="mini-btn" style="align-self:center" onclick="delLob('${id}')">✕ Delete LOB</button>` : '';
+  act.innerHTML=`<button class="btn btn-outline" onclick="dlTemplate('${esc(l.name||id)}', currentTemplateCols())">⬇ Sample template</button>
+    <button class="btn btn-accent" onclick="$('lobFile').click()">⬆ Upload filled Excel</button>
+    <button class="btn btn-outline" onclick="openEditTemplate('${id}')">✎ Edit template</button>
+    `+delBtn;
+  let rc=0; try{rc=JSON.parse(l.rowsJson||'[]').length;}catch(e){}
+  meta.textContent=`Template: ${tcols.length} columns · ${rc} rows uploaded${l.ts?' · updated '+new Date(l.ts).toLocaleDateString():''}.`;
+  if((l.columns||[]).length){
+    let rows=[],cfg=[]; try{rows=JSON.parse(l.rowsJson||'[]');}catch(e){} try{cfg=JSON.parse(l.cfgJson||'[]');}catch(e){}
+    pendingLob={id, name:l.name, templateCols:tcols, columns:l.columns||[], rows, rateCol:(l.rateCol==null?-1:l.rateCol), cfg:(cfg.length?cfg:(l.columns||[]).map(()=>({show:true,filter:false})))};
+    showLobPreview(pendingLob);
+  }
+}
+function currentTemplateCols(){ const l=getLob($$('lobPick').value); return (l&&l.templateCols&&l.templateCols.length)?l.templateCols:((l&&l.columns)||[]); }
+function dlTemplate(name, cols){
+  if(!cols||!cols.length) return toast('⚠ No template columns defined yet — use Edit template first.');
+  const ws=XLSX.utils.aoa_to_sheet([cols]); ws['!cols']=cols.map(c=>({wch:Math.min(40,Math.max(14,String(c).length+4))}));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Template');
+  XLSX.writeFile(wb, String(name).replace(/[^a-z0-9]+/ig,'_')+'_Template.xlsx');
+}
+function ensureLobMount(){ if(!lobMounted){ DynLOB.mount($$('lobPreviewHost')); lobMounted=true; } }
+function showLobPreview(ds){
+  ensureLobMount();
+  $$('lobPreviewCard').classList.remove('hidden'); $$('lobCfgCard').classList.remove('hidden');
+  $$('lobPreviewName').textContent='Preview — '+(ds.name||'');
+  DynLOB.load(ds); renderLobCfg(ds);
+}
+function renderLobCfg(ds){
+  const host=$$('lobCfg'); if(!host) return;
+  host.innerHTML='<table class="utable" style="min-width:420px"><thead><tr><th>Column</th><th style="text-align:center">Show</th><th style="text-align:center">Filter</th></tr></thead><tbody>'+
+    ds.columns.map((h,i)=>`<tr><td>${esc(h)}${i===ds.rateCol?' <span style="color:var(--accent);font-weight:700">(rate)</span>':''}</td>
+      <td style="text-align:center"><input type="checkbox" ${ds.cfg[i]&&ds.cfg[i].show?'checked':''} onchange="pendingLob.cfg[${i}].show=this.checked;DynLOB.load(pendingLob)"></td>
+      <td style="text-align:center"><input type="checkbox" ${ds.cfg[i]&&ds.cfg[i].filter?'checked':''} ${i===ds.rateCol?'disabled':''} onchange="pendingLob.cfg[${i}].filter=this.checked;DynLOB.load(pendingLob)"></td></tr>`).join('')+'</tbody></table>';
+}
+function slugify(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||('lob-'+Date.now()); }
+if($$('lobFile')) $$('lobFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  const id=$$('lobPick').value, l=getLob(id); if(!l) return toast('⚠ Select a LOB first.');
+  try{
+    const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
+    const built=DynLOB.build(l.name,wb);
+    pendingLob={id, name:l.name, templateCols:(l.templateCols&&l.templateCols.length?l.templateCols:built.columns), columns:built.columns, rows:built.rows, rateCol:built.rateCol, cfg:built.cfg};
+    $$('lobMeta').textContent='Parsed '+built.columns.length+' columns, '+built.rows.length+' rows. Review below, then Publish changes.';
+    showLobPreview(pendingLob);
+  }catch(err){ toast('❌ Could not read file: '+(err.message||'')); }
+};
+/* ---- period-tagged commission: "30% @@ 1–14 Sep 2026 ~~ 40% @@ 15–30 Sep 2026" ---- */
+const PSEP=' ~~ ', PKV=' @@ ';
+const _MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function periodLabel(fromISO,toISO){
+  const a=new Date(fromISO+'T00:00'), b=new Date(toISO+'T00:00');
+  if(isNaN(a)||isNaN(b)) return fromISO+'–'+toISO;
+  if(a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()) return a.getDate()+'–'+b.getDate()+' '+_MON[b.getMonth()]+' '+b.getFullYear();
+  if(a.getFullYear()===b.getFullYear()) return a.getDate()+' '+_MON[a.getMonth()]+' – '+b.getDate()+' '+_MON[b.getMonth()]+' '+b.getFullYear();
+  return a.getDate()+' '+_MON[a.getMonth()]+' '+a.getFullYear()+' – '+b.getDate()+' '+_MON[b.getMonth()]+' '+b.getFullYear();
+}
+function _sp(j){ try{return JSON.parse(j||'[]');}catch(e){return [];} }
+async function publishLob(){
+  if(!pendingLob) return toast('⚠ Upload a filled Excel first.');
+  if(!cloudOn||!db) return toast('⚠ Connect Firebase to publish.');
+  const fEl=$('lobEffFrom'), tEl=$('lobEffTo');
+  const from=fEl?fEl.value:'', to=tEl?tEl.value:'';
+  if(!from||!to) return toast('⚠ Set Effective From and Effective To dates first.');
+  if(from>to) return toast('⚠ Effective From is after Effective To.');
+  const label=periodLabel(from,to), month=from.slice(0,7);
+  const rc=(pendingLob.rateCol==null?-1:pendingLob.rateCol);
+  const cols=pendingLob.columns||[];
+  const renIdx=cols.findIndex(h=>/renewal/i.test(h));
+  const keyOf=r=>r.map((v,i)=>(i===rc||i===renIdx)?'':String(v==null?'':v)).join('\u0001');
+  try{
+    const ref=db.collection('gmp_lobs').doc(pendingLob.id);
+    const snap=await ref.get(); const cur=snap.exists?snap.data():null;
+    const curRows=cur?_sp(cur.rowsJson):[];
+    let baseRows=[];
+    if(cur && cur.month===month) baseRows=curRows.map(r=>r.slice());              // continue same month → stack
+    if(cur && cur.month && cur.month!==month && curRows.length){                  // new month → archive previous
+      await db.collection('gmp_lob_archive').doc(pendingLob.id+'__'+cur.month).set({
+        lobId:pendingLob.id, name:cur.name||pendingLob.name, month:cur.month,
+        columns:cur.columns||cols, rowsJson:cur.rowsJson||'[]', rateCol:(cur.rateCol==null?rc:cur.rateCol),
+        cfgJson:cur.cfgJson||'[]', ts:Date.now(), by:(currentUser()?currentUser().email:'')
+      });
+    }
+    const idx=new Map(); baseRows.forEach((r,i)=>idx.set(keyOf(r),i));
+    const merged=baseRows;
+    (pendingLob.rows||[]).forEach(nr=>{
+      const raw=String(nr[rc]==null?'':nr[rc]).split(/\s*~~\s*/)[0].split(/\s*@@\s*/)[0].trim();  // base rate only (guard re-encoding)
+      const seg=(raw||'—')+PKV+label; const k=keyOf(nr);
+      if(idx.has(k)){
+        const ex=merged[idx.get(k)];
+        const parts=String(ex[rc]||'').split(/\s*~~\s*/).filter(Boolean).filter(p=>p.split(/\s*@@\s*/)[1]!==label);
+        parts.push(seg); ex[rc]=parts.join(PSEP);
+        if(renIdx>=0 && nr[renIdx]!=null && nr[renIdx]!=='') ex[renIdx]=nr[renIdx];
+      } else { const row=nr.slice(); row[rc]=seg; merged.push(row); idx.set(k,merged.length-1); }
+    });
+    const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(pendingLob.cfg||[]);
+    if(rowsJson.length>950000) return toast('⚠ Too large ('+Math.round(rowsJson.length/1024)+'KB, ~950KB max). Split the sheet.');
+    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, rowsJson, rateCol:rc, cfgJson, month, lastPeriod:label, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
+    toast('✅ Published "'+pendingLob.name+'" · '+label+((cur&&cur.month&&cur.month!==month)?' · archived '+cur.month:''));
+  }catch(e){ toast('❌ '+(e.message||'failed')); }
+}
+/* ---- archived monthly grids (download) ---- */
+let lobArchives={};
+function subscribeLobArchives(){
+  if(!cloudOn||!db) return;
+  if(window._archUnsub) window._archUnsub();
+  window._archUnsub=db.collection('gmp_lob_archive').onSnapshot(snap=>{
+    lobArchives={}; snap.forEach(d=>{const x={id:d.id,...d.data()}; (lobArchives[x.lobId]=lobArchives[x.lobId]||[]).push(x);});
+    Object.values(lobArchives).forEach(a=>a.sort((p,q)=>String(q.month).localeCompare(String(p.month))));
+    renderLobArchives();
+  },()=>{});
+}
+function renderLobArchives(){
+  const card=$$('lobArchiveCard'), list=$$('lobArchiveList'); if(!card||!list) return;
+  const id=$$('lobPick')?$$('lobPick').value:''; const arr=lobArchives[id]||[];
+  if(id===HEALTH_ID || !arr.length){ card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  list.innerHTML='<table class="utable" style="min-width:360px"><thead><tr><th>Month</th><th>Rows</th><th>Archived</th><th></th></tr></thead><tbody>'+
+    arr.map(x=>{let n=0;try{n=JSON.parse(x.rowsJson||'[]').length;}catch(e){}return `<tr><td><b>${esc(x.month)}</b></td><td>${n}</td><td>${x.ts?new Date(x.ts).toLocaleDateString():''}</td><td style="text-align:right"><button class="mini-btn" onclick="dlArchive('${esc(x.id)}')">⬇ Download</button></td></tr>`;}).join('')+'</tbody></table>';
+}
+function dlArchive(id){
+  const x=[].concat(...Object.values(lobArchives)).find(a=>a.id===id); if(!x) return;
+  let rows=[]; try{rows=JSON.parse(x.rowsJson||'[]');}catch(e){}
+  const cols=x.columns||[], rc=(x.rateCol==null?-1:x.rateCol);
+  const dec=v=>String(v==null?'':v).split(/\s*~~\s*/).map(p=>{const kv=p.split(/\s*@@\s*/);return kv[1]?kv[0]+' ('+kv[1]+')':kv[0];}).join('; ');
+  const aoa=[cols].concat(rows.map(r=>r.map((v,i)=>i===rc?dec(v):v)));
+  const ws=XLSX.utils.aoa_to_sheet(aoa); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Grid');
+  XLSX.writeFile(wb, String(x.name||x.lobId).replace(/[^a-z0-9]+/ig,'_')+'_'+x.month+'.xlsx');
+}
+function delLob(id){
+  const l=lobs[id]; if(!l) return;
+  if(!confirm('Delete the "'+(l.name||id)+'" LOB (template and data)? Viewers will no longer see it.')) return;
+  if(cloudOn&&db) db.collection('gmp_lobs').doc(id).delete().then(()=>toast('🗑 LOB deleted')).catch(e=>toast('❌ '+(e.message||'')));
+}
+/* ---- Add / edit LOB template ---- */
+function openAddLob(){ lobTplModal('', [], null); }
+function openEditTemplate(id){ const l=getLob(id); if(!l) return; lobTplModal(l.name||id,(l.templateCols&&l.templateCols.length)?l.templateCols:(l.columns||[]), id); }
+function lobTplModal(name, cols, editId){
+  $$('modalHost').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <div class="mh"><div><h3>${editId?'Edit template':'Add LOB'}</h3><p>Define the grid name and its column headers</p></div><button class="close" onclick="closeModal()">✕</button></div>
+    <div class="mb">
+      <div style="margin-bottom:12px"><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">LOB name</label>
+        <input id="ltName" ${editId?'readonly':''} style="width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:13.5px" value="${esc(name)}" placeholder="e.g. Marine, Travel"></div>
+      <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Columns (one per line)</label>
+        <textarea id="ltCols" style="width:100%;min-height:150px;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-family:Consolas,monospace;font-size:12.5px" placeholder="Insurer&#10;Product / Plan&#10;Commission Rate">${esc(cols.join('\n'))}</textarea></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap">
+        <button class="btn btn-outline" onclick="$('lobSeedFile').click()">⬆ Seed columns from Excel</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveLobTemplate(${editId?`'${editId}'`:'null'})">${editId?'Save template':'Create LOB'}</button>
+      </div>
+    </div></div></div>`;
+}
+if($$('lobSeedFile')) $$('lobSeedFile').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f) return;
+  try{ const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'}); const built=DynLOB.build(f.name,wb); if($('ltCols')) $('ltCols').value=built.columns.join('\n'); toast('✓ Loaded '+built.columns.length+' columns'); }
+  catch(err){ toast('❌ '+(err.message||'could not read')); }
+};
+function saveLobTemplate(editId){
+  const name=($('ltName').value||'').trim(); if(!name) return toast('⚠ Enter a LOB name.');
+  const cols=($('ltCols').value||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  if(!cols.length) return toast('⚠ Add at least one column.');
+  if(!cloudOn||!db) return toast('⚠ Connect Firebase first.');
+  const id=editId||slugify(name);
+  const doc={name, templateCols:cols, ts:Date.now(), by:(currentUser()?currentUser().email:'')};
+  if(!editId){ doc.columns=[]; doc.rowsJson='[]'; doc.cfgJson='[]'; doc.rateCol=-1; }
+  db.collection('gmp_lobs').doc(id).set(doc,{merge:true}).then(()=>{ toast(editId?'✓ Template updated':'✓ LOB created'); closeModal(); const sel=$$('lobPick'); if(sel){ sel.value=id; } }).catch(e=>toast('❌ '+(e.message||'')));
+}
+
+async function seedUsers(){
+  let users = getUsers();
+  if (!users.find(u => u.email === SUPER_ADMIN)){
+    users.push({ email: SUPER_ADMIN, name: 'Abhra B', role: 'Super Admin', hash: await hash(DEFAULT_SUPER_PASS) });
+    saveUsers(users);
+  }
+}
+function currentUser(){
+  const e = sessionStorage.getItem('gmp_session');
+  return e ? getUsers().find(u => u.email === e) : null;
+}
+function unlock(u){
+  document.body.classList.remove('locked');
+  $$('uName').textContent = u.name;
+  $$('uRole').textContent = u.role;
+  $$('uAv').textContent = (u.name || u.email).slice(0,1).toUpperCase();
+  $$('setAv').textContent = (u.name || u.email).slice(0,1).toUpperCase();
+  $$('setName').textContent = u.name;
+  $$('setEmail').textContent = u.email;
+  $$('setRole').textContent = u.role;
+  $$('setRole').className = 'role-tag ' + (u.role === 'Super Admin' ? 'r-super' : u.role === 'Admin' ? 'r-admin' : 'r-viewer');
+  $$('umCard').classList.toggle('hidden', u.role !== 'Super Admin');
+  $$('fbCard').classList.toggle('hidden', u.role !== 'Super Admin');
+  $$('histCard').classList.toggle('hidden', u.role === 'Viewer');   // monthly data: Admin + Super Admin only
+  $$('navReq').classList.toggle('hidden', u.role === 'Viewer');   // approvals: Admin + Super Admin only
+  $$('navMaster').classList.toggle('hidden', u.role === 'Viewer');   // masters: Admin + Super Admin only
+  $$('navLob').classList.toggle('hidden', u.role === 'Viewer');   // LOB grids: Admin + Super Admin only
+  document.body.classList.toggle('viewer', u.role === 'Viewer');
+  renderUsers();
+}
+function isViewer(){ const u = currentUser(); return !u || u.role === 'Viewer'; }
+
+/* ---------- Sidebar & pages ---------- */
+document.getElementById('burger').onclick = () => document.body.classList.toggle('side-closed');
+function showPage(p){
+  if (p === 'dash') p = 'grid';
+  $$('navGrid').classList.toggle('active', p === 'grid');
+  $$('navSet').classList.toggle('active', p === 'settings');
+  $$('navReq').classList.toggle('active', p === 'requests');
+  $$('navMaster').classList.toggle('active', p === 'masters');
+  $$('navLob').classList.toggle('active', p === 'lobs');
+  $$('settingsSec').classList.toggle('hidden', p !== 'settings');
+  $$('reqSec').classList.toggle('hidden', p !== 'requests');
+  $$('mastersSec').classList.toggle('hidden', p !== 'masters');
+  $$('lobSec').classList.toggle('hidden', p !== 'lobs');
+  $$('uploadSec').classList.toggle('hidden', p !== 'grid' || displaySrc().length > 0);
+  $$('dash').classList.toggle('hidden', p !== 'grid' || displaySrc().length === 0);
+  lobToggle(p === 'grid');
+  if (p === 'settings') renderHistory();
+  if (p === 'requests') renderRequests();
+  if (p === 'masters') renderMasters();
+  if (p === 'lobs') renderLobPick();
+  if (window.innerWidth < 900) document.body.classList.add('side-closed');
+}
+document.getElementById('loginForm').addEventListener('submit', async ev => {
+  ev.preventDefault();
+  const email = $$('loginEmail').value.trim().toLowerCase();
+  const u = getUsers().find(x => x.email.toLowerCase() === email);
+  const err = $$('loginErr');
+  if (u && u.hash === await hash($$('loginPass').value)){
+    sessionStorage.setItem('gmp_session', u.email);
+    err.style.display = 'none';
+    unlock(u);
+    showPage('dash');
+  } else {
+    err.textContent = '⚠ Invalid email or password.';
+    err.style.display = 'block';
+    $$('loginPass').value = '';
+  }
+});
+window.addEventListener('DOMContentLoaded', async () => {
+  await seedUsers();
+  restoreGrid();
+  const u = currentUser();
+  if (u){ unlock(u); showPage('dash'); }
+  try{
+    const DEFAULT_FB_CFG = {
+      apiKey: "AIzaSyD7ND6xkJmUWnpq7RrVfyQKEDzVhchMc6k",
+      authDomain: "grid-matrix.firebaseapp.com",
+      projectId: "grid-matrix",
+      storageBucket: "grid-matrix.firebasestorage.app",
+      messagingSenderId: "663754323566",
+      appId: "1:663754323566:web:db889ecdc6103995dfd87f"
+    };
+    let cfg = null;
+    try{ cfg = JSON.parse(localStorage.getItem('gmp_fbcfg')); }catch(e){}
+    cfg = cfg || DEFAULT_FB_CFG;
+    $$('fbCfg').value = JSON.stringify(cfg, null, 2);
+    connectCloud(cfg);
+  }catch(e){}
+});
+$$('fbConnect').onclick = () => {
+  const m = $$('fbCfg').value.match(/\{[\s\S]*\}/);
+  if (!m) return toast('⚠ Paste the firebaseConfig object first.');
+  let cfg;
+  try{ cfg = (new Function('return (' + m[0] + ')'))(); }catch(e){ return toast('⚠ Could not parse the config — paste it exactly as Firebase shows it.'); }
+  if (!cfg.apiKey || !cfg.projectId) return toast('⚠ Config must include apiKey and projectId.');
+  connectCloud(cfg);
+};
+$$('fbDisc').onclick = () => {
+  localStorage.removeItem('gmp_fbcfg');
+  if (gridUnsub) gridUnsub();
+  cloudOn = false; db = null;
+  setFbStatus('Not connected', '');
+  renderHistory();
+  toast('Cloud sync disconnected — data stays local.');
+};
+document.getElementById('forgotLink').onclick = async e => {
+  e.preventDefault();
+  const email = $$('loginEmail').value.trim().toLowerCase();
+  if (!email) return toast('⚠ Enter your email above first, then click Forgot password.');
+  try{
+    const l = JSON.parse(localStorage.getItem('gmp_resets') || '{}');
+    l[email] = Date.now();
+    localStorage.setItem('gmp_resets', JSON.stringify(l));
+  }catch(e2){}
+  if (cloudOn){
+    try{ await db.collection('gmp_meta').doc('resets').set({[email]: Date.now()}, {merge:true}); }catch(e2){}
+  }
+  toast('📨 Reset request sent — your administrator will set a temporary password for you.');
+};
+document.getElementById('btnLogout').onclick = () => {
+  sessionStorage.removeItem('gmp_session');
+  location.reload();
+};
+
+/* ---------- User management (Super Admin, in Settings) ---------- */
+async function getResets(){
+  let r = {};
+  try{ r = JSON.parse(localStorage.getItem('gmp_resets') || '{}'); }catch(e){}
+  if (cloudOn){
+    try{ const d = await db.collection('gmp_meta').doc('resets').get(); Object.assign(r, d.data() || {}); }catch(e){}
+  }
+  return r;
+}
+async function renderUsers(){
+  const me = currentUser();
+  if (!me || me.role !== 'Super Admin') return;
+  const resets = await getResets();
+  const trs = getUsers().map(u => {
+    const req = resets[u.email.toLowerCase()];
+    return `<tr>
+    <td><b>${esc(u.name)}</b><br><span style="color:var(--muted);font-size:12px">${esc(u.email)}</span>
+      ${req ? '<br><span style="color:var(--red);font-size:11px;font-weight:700">⚠ password reset requested</span>' : ''}</td>
+    <td>${u.email === SUPER_ADMIN
+      ? '<span class="role-tag r-super">Super Admin</span>'
+      : `<select onchange="changeRole('${esc(u.email)}', this.value)" style="padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:12px;font-weight:700;color:${u.role==='Admin'?'#1e64c8':'#5a6478'};background:${u.role==='Admin'?'#e1f0ff':'#eef1f6'};cursor:pointer">
+          <option ${u.role==='Viewer'?'selected':''}>Viewer</option>
+          <option ${u.role==='Admin'?'selected':''}>Admin</option>
+        </select>`}</td>
+    <td style="white-space:nowrap">
+      <button class="mini-btn" style="color:var(--navy)" onclick="resetPw('${esc(u.email)}')">Reset PW</button>
+      ${u.email === SUPER_ADMIN ? '<span style="color:var(--muted);font-size:11px;margin-left:6px">protected</span>' : `<button class="mini-btn" onclick="delUser('${esc(u.email)}')">Remove</button>`}
+    </td></tr>`;
+  }).join('');
+  $$('umHost').innerHTML = `<table class="utable"><thead><tr><th>User</th><th>Role</th><th></th></tr></thead><tbody>${trs}</tbody></table>`;
+}
+function changeRole(email, role){
+  if (email === SUPER_ADMIN) return;
+  const users = getUsers(), u = users.find(x => x.email === email);
+  if (!u || u.role === role) return;
+  u.role = role;
+  saveUsers(users);   // also syncs to cloud
+  toast('👤 ' + email + ' is now ' + role + (role === 'Admin' ? ' — can upload grids and download reports.' : ' — view only.'));
+  renderUsers();
+}
+async function resetPw(email){
+  const np = prompt('New temporary password for ' + email + ' (min 6 characters):');
+  if (np === null) return;
+  if (np.length < 6) return toast('⚠ Password must be at least 6 characters.');
+  const users = getUsers(), u = users.find(x => x.email === email);
+  if (!u) return;
+  u.hash = await hash(np);
+  saveUsers(users);
+  try{
+    const l = JSON.parse(localStorage.getItem('gmp_resets') || '{}');
+    delete l[email.toLowerCase()];
+    localStorage.setItem('gmp_resets', JSON.stringify(l));
+  }catch(e){}
+  if (cloudOn) db.collection('gmp_meta').doc('resets').set({[email.toLowerCase()]: firebase.firestore.FieldValue.delete()}, {merge:true}).catch(()=>{});
+  toast('🔑 Password reset for ' + email + ' — share the temporary password with them.');
+  renderUsers();
+}
+async function addUser(){
+  const email = $$('nuEmail').value.trim().toLowerCase(), pass = $$('nuPass').value, role = $$('nuRole').value;
+  if (!/^\S+@\S+\.\S+$/.test(email)) return toast('⚠ Enter a valid email.');
+  if (pass.length < 6) return toast('⚠ Password must be at least 6 characters.');
+  const users = getUsers();
+  if (users.find(u => u.email.toLowerCase() === email)) return toast('⚠ User already exists.');
+  users.push({ email, name: email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase()), role, hash: await hash(pass) });
+  saveUsers(users);
+  toast('✅ User added: ' + email);
+  $$('nuEmail').value = ''; $$('nuPass').value = '';
+  renderUsers();
+}
+function delUser(email){
+  if (email === SUPER_ADMIN) return;
+  saveUsers(getUsers().filter(u => u.email !== email));
+  cloudDeleteUser(email);
+  toast('🗑 Removed ' + email);
+  renderUsers();
+}
+/* ---------- Bulk user upload ---------- */
+function dlUserTemplate(){
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['Email','Password','Role'],
+    ['john.d@idealinsurance.in','Pass@123','Viewer'],
+    ['priya.s@idealinsurance.in','Secure@1','Admin']]);
+  ws['!cols'] = [{wch:34},{wch:16},{wch:10}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Users');
+  XLSX.writeFile(wb, 'Bulk_Users_Template.xlsx');
+}
+async function bulkAddUsers(f){
+  const wb = XLSX.read(await f.arrayBuffer());
+  const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:''});
+  const hr = aoa.findIndex(r => r.some(c => /email/i.test(String(c))));
+  if (hr < 0) return toast('❌ No "Email" column found — use the sample template.');
+  const hdr = aoa[hr].map(x => String(x).toLowerCase());
+  const ei = hdr.findIndex(h => h.includes('email')), pi = hdr.findIndex(h => h.includes('pass')), ri = hdr.findIndex(h => h.includes('role'));
+  const users = getUsers();
+  let added = 0, skipped = 0;
+  for (let i = hr + 1; i < aoa.length; i++){
+    const email = String(aoa[i][ei]||'').trim().toLowerCase();
+    const pass = String(pi >= 0 ? aoa[i][pi]||'' : '').trim();
+    const role = /admin/i.test(String(ri >= 0 ? aoa[i][ri] : '')) ? 'Admin' : 'Viewer';
+    if (!email) continue;
+    if (!/^\S+@\S+\.\S+$/.test(email) || pass.length < 6 || users.find(u => u.email.toLowerCase() === email)){ skipped++; continue; }
+    users.push({ email, name: email.split('@')[0].replace(/[._]/g,' ').replace(/\b\w/g, c => c.toUpperCase()), role, hash: await hash(pass) });
+    added++;
+  }
+  saveUsers(users);
+  renderUsers();
+  toast(`✅ Bulk upload: ${added} added, ${skipped} skipped (invalid/duplicate/short password)`);
+}
+document.getElementById('bulkFile').onchange = e => {
+  const f = e.target.files[0];
+  if (f) bulkAddUsers(f);
+  e.target.value = '';
+};
+
+async function changePass(){
+  const me = currentUser();
+  const users = getUsers(), u = users.find(x => x.email === me.email);
+  if (u.hash !== await hash($$('cpOld').value)) return toast('⚠ Current password is wrong.');
+  if ($$('cpNew').value.length < 6) return toast('⚠ New password must be at least 6 characters.');
+  u.hash = await hash($$('cpNew').value);
+  saveUsers(users);
+  toast('🔒 Password updated.');
+  $$('cpOld').value = ''; $$('cpNew').value = '';
+}
+
+/* ================= GRID ================= */
+const COLS =['Insurer','Product / Plan','Business Type','Location Type','Sub-Condition','Commission Rate (IDEAL)','SI Slab: < 10 Lac','SI Slab: ≥ 10 Lac','Conditions, Caps & Notes','Effective Date'];
+const SHOW = [0,1,2,4,5,6,7,9];   // table hides Location Type & Conditions/Notes
+let rows = [], view = [], sortKey = -1, sortAsc = true, fileName = '';
+
+const $ = id => document.getElementById(id);
+const drop = $('drop'), fileIn = $('file');
+
+/* ---------- Upload wiring ---------- */
+drop.onclick = () => fileIn.click();
+['dragover','dragenter'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', ev => { const f = ev.dataTransfer.files[0]; if (f) readFile(f); });
+fileIn.onchange = () => {
+  const f = fileIn.files[0];
+  fileIn.value = '';           // allow re-uploading the same file without a page reload
+  if (f) readFile(f);
+};
+
+function readFile(f){
+  if (isViewer()) return toast('⛔ Viewers cannot upload files.');
+  fileName = f.name;
+  const rd = new FileReader();
+  rd.onload = e => {
+    try{
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+      parseWB(wb);
+    }catch(err){ toast('❌ Could not read file: ' + err.message); }
+  };
+  rd.readAsArrayBuffer(f);
+}
+
+/* ---------- Parsing with header auto-detect ---------- */
+function norm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9<>≥]/g,''); }
+function parseWB(wb){
+  // 1) template format? (any sheet with an "Insurer" header column)
+  for (const sn of wb.SheetNames){
+    if (tryTemplateSheet(wb.Sheets[sn])) return;
+  }
+  // 2) raw company data → auto-convert every sheet into the template structure
+  const res = autoTransform(wb);
+  if (res.recs.length){
+    draftAdd(res.recs, fileName);
+    const insurers = [...new Set(res.recs.map(r => r[0]))];
+    toast('👁 Preview ready: ' + res.recs.length + ' rules from ' + insurers.length + ' insurer(s). Review & Publish.');
+    if (res.skipped.length) setTimeout(() => toast('⚠ No readable data in: ' + res.skipped.join(', ') + ' (may be images)'), 2600);
+    return;
+  }
+  // 3) nothing recognizable — fall back to manual column mapping
+  openMapper(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:''}));
+}
+
+/* ===== Raw data auto-converter ===== */
+function insurerFromSheet(name){
+  const n = name.toLowerCase();
+  if (n.includes('lombard') || n.includes('icici')) return 'ICICI Lombard Health';
+  if (n.includes('hdfc')) return 'HDFC ERGO Health';
+  if (n.includes('care')) return 'Care Health Insurance';
+  if (n.includes('tata')) return 'Tata Health Insurance';
+  if (n.includes('liberty')) return 'Liberty Health';
+  if (n.includes('star')) return 'Star Health';
+  if (n.includes('bajaj')) return 'Bajaj Allianz Health';
+  if (n.includes('niva') || n.includes('bupa')) return 'Niva Bupa Health';
+  if (n.includes('aditya') || n.includes('birla')) return 'Aditya Birla Health';
+  return name.trim();
+}
+function fmtRate(v){
+  const p = v <= 1.5 ? v * 100 : v;
+  return (+p.toFixed(2)) + '%';
+}
+function btFrom(t){
+  const s = String(t).toLowerCase();
+  if (/roll\s*over|rollover/.test(s)) return 'Rollover';
+  if (/renew|repeat/.test(s)) return 'Renewal';
+  if (/port/.test(s)) return 'Port';
+  if (/yr\s*\d|year\s*\d|long\s*term/.test(s)) return 'New Business (Long Term)';
+  if (/fresh|new/.test(s)) return 'New Business';
+  return '';
+}
+function autoTransform(wb){
+  const out = [], skipped = [];
+  for (const sn of wb.SheetNames){
+    const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], {header:1, defval:''});
+    let recs = [];
+    try{ recs = transformSheet(aoa, insurerFromSheet(sn)); }catch(e){}
+    if (recs.length) out.push(...recs); else skipped.push(sn);
+  }
+  const seen = new Set(), ded = [];
+  for (const r of out){ const k = r.join('§'); if (!seen.has(k)){ seen.add(k); ded.push(r); } }
+  return {recs: ded, skipped};
+}
+function transformSheet(aoa, insurer){
+  const BLACK = /gwp|ytd|lr\s*%|target|premium\s*collected|\bor%|monthly/i;
+  const isNum = v => typeof v === 'number' && isFinite(v);
+  const rateLike = v => isNum(v) && v >= 0 && v <= 100;
+  const rowText = r => (r||[]).map(c => String(c||'').trim()).filter(Boolean);
+  const isBlank = r => !rowText(r).length;
+  // find data rows: >=2 rate-like numbers AND no huge numbers (targets/GWP)
+  const isDataRow = r => (r||[]).filter(rateLike).length >= 2 && !(r||[]).some(v => isNum(v) && v > 10000);
+  // group consecutive data rows into blocks
+  const blocks = [];
+  for (let i = 0; i < aoa.length; i++){
+    if (!isDataRow(aoa[i])) continue;
+    if (blocks.length && i === blocks[blocks.length-1][blocks[blocks.length-1].length-1] + 1) blocks[blocks.length-1].push(i);
+    else blocks.push([i]);
+  }
+  const recs = [];
+  for (const block of blocks){
+    // collect up to 4 header rows above the block (skip blank gap first)
+    let i = block[0] - 1;
+    while (i >= 0 && isBlank(aoa[i])) i--;
+    const hdrRows = [];
+    while (i >= 0 && hdrRows.length < 4 && !isBlank(aoa[i]) && !isDataRow(aoa[i])){ hdrRows.unshift(i); i--; }
+    if (!hdrRows.length) continue;
+    const allHdrText = hdrRows.map(hi => rowText(aoa[hi]).join(' ')).join(' ');
+    if (BLACK.test(allHdrText)) continue;    // GWP / target / LR tables — not commission grids
+    const leafIdx = hdrRows[hdrRows.length-1];
+    const leaf = aoa[leafIdx] || [];
+    // forward-filled upper header rows (merged group headers)
+    const groups = hdrRows.slice(0, -1).map(hi => {
+      const src = aoa[hi] || [], filled = []; let last = '';
+      for (let j = 0; j < Math.max(src.length, leaf.length); j++){
+        const t = String(src[j]||'').trim();
+        if (t) last = t;
+        filled[j] = last;
+      }
+      return filled;
+    });
+    if (block.length >= 3){
+      // ---- long table: one record per data row ----
+      const hdrs = leaf.map(h => String(h||'').trim());
+      const rateCols = [], textCols = [];
+      hdrs.forEach((h, j) => {
+        const vals = block.map(bi => (aoa[bi]||[])[j]);
+        if (vals.some(rateLike) && vals.every(v => rateLike(v) || v === '' || v == null)) rateCols.push(j);
+        else if (h) textCols.push(j);
+      });
+      if (!rateCols.length) continue;
+      const findCol = re => textCols.find(j => re.test(hdrs[j]));
+      const prodCol = findCol(/lob|product|plan|name/i) ?? textCols[0];
+      const btCol = findCol(/business|type/i);
+      const locCol = findCol(/imd|location|zone|city|region/i);
+      const btHeaders = rateCols.every(j => btFrom(hdrs[j]));
+      for (const bi of block){
+        const r = aoa[bi] || [];
+        const prod = prodCol != null ? String(r[prodCol]||'').trim() : '';
+        const insHere = /insurance|health\s*insur/i.test(prod) && !btCol ? prod : insurer;
+        const bt = btCol != null ? String(r[btCol]||'').trim() : '';
+        const loc = locCol != null ? String(r[locCol]||'').trim() : 'All';
+        if (btHeaders){
+          for (const j of rateCols){
+            if (!rateLike(r[j])) continue;
+            recs.push([insHere, insHere === prod ? 'Retail Health' : (prod||'Retail Health'), btFrom(hdrs[j]), loc||'All', '—', fmtRate(r[j]), '', '', '', '']);
+          }
+        } else {
+          const joined = rateCols.filter(j => rateLike(r[j])).map(j => hdrs[j] + ': ' + fmtRate(r[j])).join('\n');
+          if (!joined) continue;
+          recs.push([insHere, prod||'Retail Health', btFrom(bt||prod) || bt || '—', loc||'All',
+            'Rate varies by premium slab', joined, '', '', '', '']);
+        }
+      }
+    } else {
+      // ---- matrix: one record per rate cell of the last data row (net rates) ----
+      const data = aoa[block[block.length-1]] || [];
+      const c0 = String(data[0]||'').trim();
+      const insHere = /insurance|health/i.test(c0) && !rateLike(data[0]) ? c0 : insurer;
+      for (let j = 0; j < data.length; j++){
+        if (!rateLike(data[j])) continue;
+        const labels = [];
+        groups.forEach(g => { const t = (g[j]||'').trim(); if (t && !labels.includes(t)) labels.push(t); });
+        const lf = String(leaf[j]||'').trim();
+        if (lf && !labels.includes(lf)) labels.push(lf);
+        if (!labels.length) continue;
+        let bt = '', loc = 'All', sub = '—', prod = '', notes = [];
+        for (const t of labels){
+          if (!bt && btFrom(t)){ bt = btFrom(t); if (!prod) prod = t; continue; }
+          if (/preferred/i.test(t)){ loc = /non/i.test(t) ? 'Non-Preferred' : 'Preferred'; if (/deduct/i.test(t)) notes.push(t); continue; }
+          if (/lac|lakh|slab|yr\s*\d|year|[<>≥₹]/i.test(t)){ sub = t; continue; }
+          if (!prod) prod = t; else notes.push(t);
+        }
+        recs.push([insHere, prod || 'Retail Health', bt || '—', loc, sub, fmtRate(data[j]), '', '', notes.join(' · '), '']);
+      }
+      if (block.length === 2 && recs.length){
+        // two stacked rate rows = gross + net; we used the last (net)
+        const last = recs[recs.length-1];
+        if (!/net/i.test(last[8])) last[8] = (last[8] ? last[8] + ' · ' : '') + 'Net rates (from raw file)';
+      }
+    }
+  }
+  return recs.map(r => { r.push(''); return r; });   // covered-locations placeholder
+}
+
+function tryTemplateSheet(ws){
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  // find header row: contains "insurer"
+  let hr = -1, map = [];
+  for (let i = 0; i < Math.min(10, aoa.length); i++){
+    const cells = aoa[i].map(norm);
+    if (cells.some(c => c.includes('insurer'))){ hr = i; break; }
+  }
+  if (hr < 0) return false;
+  // combine header row with sub-header row (handles merged slab headers)
+  const sub = aoa[hr+1] || [];
+  const hdr = aoa[hr].map((h, j) => norm(h) + norm(sub[j]));
+  const keys = [
+    ['insurer'],['product'],['businesstype'],['locationtype'],['subcondition'],
+    ['basecommission','commissionrate'],['<10'],['≥10','>10'],
+    ['notes','conditions'],['effectivedate','effective']
+  ];
+  map = keys.map(ks => hdr.findIndex(h => ks.some(k => h.includes(norm(k)))));
+  if (map.filter(m => m >= 0).length < 4) return false;   // not really the template — treat as raw data
+  // slab sub-header row (template merges): skip a row starting with blank + "<10"
+  let start = hr + 1;
+  if (aoa[start] && norm(aoa[start].join('')).includes('<10') && !norm(aoa[start][0])) start++;
+
+  const recs = [];
+  for (let i = start; i < aoa.length; i++){
+    const r = aoa[i];
+    const ins = String(r[map[0]]||'').trim();
+    if (!ins || /^legend/i.test(ins) || /^commission rate/i.test(ins) || /^location type/i.test(ins)) continue;
+    const rec = COLS.map((_, c) => {
+      if (map[c] < 0) return '';
+      const v = c === 9 ? normEffDate(r[map[c]]) : c === 3 ? cleanLoc(r[map[c]]) : (c >= 5 && c <= 7) ? normRate(r[map[c]]) : r[map[c]];
+      return String(v == null ? '' : v).trim();
+    });
+    // hidden city lists live in cell comments on the Location Type column
+    let note = '';
+    if (map[3] >= 0){
+      const cell = ws[XLSX.utils.encode_cell({r: i, c: map[3]})];
+      if (cell && cell.c) note = cell.c.map(x => (x.t || '')).join(' ').trim();
+    }
+    rec.push(note);
+    recs.push(rec);
+  }
+  if (!recs.length) return false;
+  draftAdd(recs, fileName);
+  return true;
+}
+
+/* ---------- UI build ---------- */
+function pct(s){ const m = String(s).match(/(\d+(?:\.\d+)?)\s*%/); return m ? parseFloat(m[1]) : null; }
+function pctAll(s){ return [...String(s).matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map(m => parseFloat(m[1])); }
+
+function buildData(){ buildGrid(); }
+function buildGrid(){
+  const src = displaySrc();
+  buildMs('fPlan', [...new Set([...src.map(r => r[1]), ...masters.products].filter(Boolean))].sort());
+  buildMs('fIns', [...new Set([...src.map(r => r[0]), ...masters.insurers].filter(Boolean))].sort());
+  buildMs('fBiz', [...new Set(src.map(r => r[2]).filter(Boolean))].sort());
+  // Location dropdown lists actual cities, grouped by Preferred / Non-Preferred / Specific Cities
+  const gmap = {};
+  src.forEach(r => {
+    const cat = (r[3] && r[3] !== '—') ? r[3] : 'Other';
+    cityList(r).forEach(c => { (gmap[cat] = gmap[cat] || new Set()).add(c); });
+  });
+  delete gmap['All'];
+  const groups = Object.keys(gmap).sort().map(k => ({label: k, items: [...gmap[k]].sort()}));
+  if (groups.length) buildMsGrouped('fLoc', groups);
+  else buildMs('fLoc', [...new Set(src.map(r => r[3]).filter(v => v && v !== '—'))].sort());
+  renderLobBar();
+  $('thr').innerHTML = SHOW.map(i => `<th onclick="sortBy(${i})">${COLS[i]}<span class="arrow" id="ar${i}"></span></th>`).join('') + (isViewer() ? '' : '<th style="cursor:default"></th>');
+  applyFilters();
+}
+
+/* ---------- Line of Business ---------- */
+const LOBS = ['Retail Health','Commercial - Motor','Retail Motor','Commercial Non Motor','Life Insurance'];
+let lobSel = '';
+function lobOf(r){
+  const t = (r[0] + ' ' + r[1]).toLowerCase();
+  if (/\blife\b|term plan|ulip|endowment/.test(t)) return 'Life Insurance';
+  if (/motor|vehicle|car\b|two.?wheeler|\btw\b|bike|scooter|\bcv\b|gcv|pcv|taxi|truck/.test(t))
+    return /commercial|gcv|pcv|taxi|truck|goods|passenger/.test(t) ? 'Commercial - Motor' : 'Retail Motor';
+  if (/marine|fire|property|engineering|liability|workmen|\bwc\b|burglary|shop|office|\bsme\b|package|cargo/.test(t)) return 'Commercial Non Motor';
+  return 'Retail Health';
+}
+function renderLobBar(){
+  const src = displaySrc();
+  const counts = {};
+  src.forEach(r => { const l = lobOf(r); counts[l] = (counts[l]||0) + 1; });
+  $('lobNav').innerHTML = [
+    `<button class="sub-item ${!lobSel ? 'active' : ''}" onclick="setLob('')"><span>All LOB</span><span class="cnt">${src.length}</span></button>`,
+    ...LOBS.map(l => `<button class="sub-item ${lobSel === l ? 'active' : ''}" onclick="setLob('${l}')"><span>${l}</span><span class="cnt">${counts[l]||0}</span></button>`)
+  ].join('');
+}
+function setLob(l){ lobSel = l; renderLobBar(); showPage('grid'); applyFilters(); }
+function gridNavClick(){
+  if ($$('navGrid').classList.contains('active')) lobToggle(!$$('lobNav').classList.contains('open'));
+  else showPage('grid');
+}
+function lobToggle(open){
+  const ln=$$('lobNav'); if(ln) ln.classList.toggle('open', open);
+  const gc=$$('gridCaret'); if(gc) gc.style.transform = open ? 'rotate(180deg)' : '';
+}
+
+/* ---------- Multiselect dropdowns ---------- */
+const MS_LABEL = {fPlan:'All Business Plan', fIns:'All Insurer', fBiz:'All Business Types', fLoc:'All Locations'};
+const msSel = {fPlan:new Set(), fIns:new Set(), fBiz:new Set(), fLoc:new Set()};
+function buildMs(id, values){
+  const sel = msSel[id];
+  [...sel].forEach(v => { if (!values.includes(v)) sel.delete(v); });
+  const host = $(id);
+  host._vals = values;
+  host.innerHTML = `<button type="button" onclick="msOpen('${id}')"></button>
+    <div class="pnl"><div class="clr" onclick="msClear('${id}')">✕ Clear selection</div>` +
+    values.map((v, i) => `<label><input type="checkbox" data-dd="${id}" data-i="${i}" ${sel.has(v) ? 'checked' : ''}>${esc(v)}</label>`).join('') + `</div>`;
+  msLabel(id);
+}
+function cityList(r){
+  let t = String(r[10]||'');
+  if (!t) return [];
+  const ci = t.lastIndexOf(':');
+  if (ci > -1) t = t.slice(ci + 1);   // drop any explanatory sentence before the list
+  return t.split(/[\/\n,]+/).map(x => x.trim()).filter(x => x && x.length < 45);
+}
+function buildMsGrouped(id, groups){
+  const sel = msSel[id];
+  const flat = [];
+  groups.forEach(g => g.items.forEach(v => flat.push(v)));
+  [...sel].forEach(v => { if (!flat.includes(v)) sel.delete(v); });
+  const host = $(id);
+  host._vals = flat;
+  let i = 0;
+  host.innerHTML = `<button type="button" onclick="msOpen('${id}')"></button>
+    <div class="pnl"><div class="clr" onclick="msClear('${id}')">✕ Clear selection</div>` +
+    groups.map(g => `<div class="grp">${esc(g.label)}</div>` +
+      g.items.map(v => `<label><input type="checkbox" data-dd="${id}" data-i="${i++}" ${sel.has(v) ? 'checked' : ''}>${esc(v)}</label>`).join('')
+    ).join('') + `</div>`;
+  msLabel(id);
+}
+function msLabel(id){
+  const n = msSel[id].size;
+  $(id).querySelector('button').textContent = n ? MS_LABEL[id].replace(/^All /,'') + ' · ' + n + ' selected' : MS_LABEL[id];
+}
+function msOpen(id){
+  document.querySelectorAll('.msdd.open').forEach(d => { if (d.id !== id) d.classList.remove('open'); });
+  $(id).classList.toggle('open');
+}
+function msClear(id){
+  msSel[id].clear();
+  $(id).querySelectorAll('input').forEach(i => i.checked = false);
+  msLabel(id);
+  applyFilters();
+}
+document.addEventListener('change', e => {
+  const dd = e.target.dataset ? e.target.dataset.dd : null;
+  if (!dd) return;
+  const v = $(dd)._vals[+e.target.dataset.i];
+  if (e.target.checked) msSel[dd].add(v); else msSel[dd].delete(v);
+  msLabel(dd);
+  applyFilters();
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.msdd')) document.querySelectorAll('.msdd.open').forEach(d => d.classList.remove('open'));
+});
+
+/* ---------- Upload Preview → Publish workflow ---------- */
+let pendingPreview = null;
+function displaySrc(){ return rows; }
+function draftAdd(recs, fname){ openPreview(recs, fname); }
+function openPreview(recs, fname){
+  pendingPreview = {recs, fname: fname || fileName};
+  const insurers = [...new Set(recs.map(r => r[0]))];
+  const diffing = rows.length > 0;
+  const key = r => r.slice(0, 5).map(x => String(x||'').toLowerCase().trim()).join('|');
+  const oldMap = new Map(rows.map(r => [key(r), r]));
+  const newKeys = new Set(recs.map(key));
+  let nNew = 0, nChg = 0, nSame = 0;
+  const badge = (t, bg, fg) => `<span style="display:inline-block;padding:2px 9px;border-radius:12px;font-size:10px;font-weight:800;background:${bg};color:${fg};white-space:nowrap">${t}</span>`;
+  const cell = (r, j, extra='') => `<td style="padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;${j === 5 ? 'font-weight:700;color:var(--navy);white-space:pre-line;' : ''}${j === 8 ? 'font-size:11px;color:var(--muted);max-width:240px;' : ''}${extra}">${esc(r[j])||'—'}</td>`;
+  const trs = recs.map(r => {
+    const o = diffing ? oldMap.get(key(r)) : null;
+    let st = 'NEW', bg = '#EAF7EC', chgCols = [];
+    if (!diffing){ st = ''; bg = ''; }
+    else if (o){
+      chgCols = [5,6,7,8,9].filter(j => String(o[j]||'').trim() !== String(r[j]||'').trim());
+      if (chgCols.length){ st = 'CHANGED'; bg = '#FFF6DE'; nChg++; }
+      else { st = 'SAME'; bg = ''; nSame++; }
+    } else nNew++;
+    const stCell = !diffing ? '' : `<td style="padding:8px 10px;border-bottom:1px solid var(--line)">${
+      st === 'NEW' ? badge('＋ NEW','#DCF3E1','#0B7A52') : st === 'CHANGED' ? badge('～ CHANGED','#F7E8BC','#8A6414') : badge('＝ SAME','#EEF1F6','#8A93A8')}</td>`;
+    // on changed rows, show old rate struck through above the new one
+    const rateExtra = (st === 'CHANGED' && chgCols.includes(5) && o)
+      ? `<td style="padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;white-space:pre-line"><span style="text-decoration:line-through;color:var(--red);font-size:11px">${esc(o[5])||'—'}</span><br><b style="color:var(--navy)">${esc(r[5])||'—'}</b></td>`
+      : cell(r, 5);
+    const stKey = st === 'NEW' ? 'new' : st === 'CHANGED' ? 'chg' : 'same';
+    return `<tr data-st="${stKey}" style="background:${bg}">${stCell}${COLS.map((_, j) => j === 5 ? rateExtra : cell(r, j)).join('')}</tr>`;
+  }).join('');
+  // rules present today but missing from the new file
+  const removed = diffing ? rows.filter(r => !newKeys.has(key(r))) : [];
+  const remTrs = removed.map(r => `<tr data-st="rem" style="background:#FDECEC">
+    <td style="padding:8px 10px;border-bottom:1px solid var(--line)">${badge('− REMOVED','#F5C2C2','#B42318')}</td>${
+    COLS.map((_, j) => `<td style="padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;text-decoration:line-through;color:var(--muted);${j === 5 ? 'white-space:pre-line;' : ''}">${esc(r[j])||'—'}</td>`).join('')}</tr>`).join('');
+  const chip = (st, txt, bg, fg) => `<button id="pvc-${st}" onclick="pvFilter('${st}')" style="border:2px solid transparent;cursor:pointer;padding:3px 11px;border-radius:12px;font-size:10.5px;font-weight:800;background:${bg};color:${fg};white-space:nowrap" title="Click to show only these rows">${txt}</button>`;
+  const chips = diffing
+    ? `<span style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">${chip('new','＋ ' + nNew + ' new','#DCF3E1','#0B7A52')}${chip('chg','～ ' + nChg + ' changed','#F7E8BC','#8A6414')}${chip('rem','− ' + removed.length + ' removed','#F5C2C2','#B42318')}${chip('same','＝ ' + nSame + ' unchanged','#EEF1F6','#8A93A8')}</span>`
+    : '';
+  const headCols = (diffing ? ['Status', ...COLS] : COLS);
+  document.getElementById('modalHost').innerHTML = `<div class="overlay">
+    <div class="modal" style="max-width:1280px;width:96%">
+      <div class="mh"><div><h3>👁 Preview — ${diffing ? 'Compared with Published Grid' : 'Template Structure'}</h3>
+        <p>${recs.length} rules · ${insurers.length} insurer(s) · ${esc(pendingPreview.fname)}</p>${chips}</div>
+        <button class="close" onclick="cancelPreview()">✕</button></div>
+      <div style="overflow:auto;max-height:54vh">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1100px">
+          <thead><tr>${headCols.map(c => `<th style="position:sticky;top:0;background:var(--navy);color:#fff;padding:10px;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;text-align:left;white-space:nowrap;z-index:2">${c}</th>`).join('')}</tr></thead>
+          <tbody>${trs}${remTrs}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:10px;padding:16px 22px;border-top:1px solid var(--line);align-items:center">
+        <button class="btn btn-accent" onclick="publishPreview()">🚀 Publish to Viewers</button>
+        <button class="btn btn-outline" onclick="cancelPreview()">Cancel</button>
+        <span style="flex:1"></span>
+        <span style="font-size:12px;color:var(--muted)">${diffing ? 'Publishing applies this file — removed rows disappear for viewers too' : 'Publishing replaces the current grid for all users'}</span>
+      </div>
+    </div></div>`;
+}
+let pvActive = '';
+function pvFilter(st){
+  pvActive = pvActive === st ? '' : st;   // click again to show all
+  document.querySelectorAll('#modalHost tbody tr[data-st]').forEach(tr => {
+    tr.style.display = (!pvActive || tr.dataset.st === pvActive) ? '' : 'none';
+  });
+  ['new','chg','rem','same'].forEach(s => {
+    const c = document.getElementById('pvc-' + s);
+    if (c) c.style.borderColor = (pvActive === s) ? 'var(--navy)' : 'transparent';
+  });
+}
+function publishPreview(){
+  if (!pendingPreview) return;
+  const me = currentUser();
+  if (!me || me.role === 'Viewer') return;
+  rows = pendingPreview.recs;
+  fileName = pendingPreview.fname || fileName;
+  pendingPreview = null;
+  closeModal();
+  persistGrid();   // published store + monthly snapshot + cloud sync
+  buildData();
+  showPage('grid');
+  toast('🚀 Published — all users now see ' + rows.length + ' rules.');
+}
+function cancelPreview(){
+  pendingPreview = null;
+  closeModal();
+  toast('Upload discarded — nothing was published.');
+}
+
+/* ---------- Raw file column mapper ---------- */
+let pendingAoa = null;
+function openMapper(aoa){
+  pendingAoa = aoa;
+  let best = 0, bn = -1;
+  for (let i = 0; i < Math.min(10, aoa.length); i++){
+    const n = aoa[i].filter(c => String(c||'').trim()).length;
+    if (n > bn){ bn = n; best = i; }
+  }
+  const hdrs = aoa[best].map((h, i) => String(h||'').trim() || 'Column ' + (i+1));
+  const sample = aoa[best+1] || [];
+  const syn = [['insurer','company','carrier','provider'],['product','plan','policy'],['business','type','case'],['location','city','zone','region'],['sub','condition','variant','criteria'],['rate','commission','payout','comm','%'],['<10','slab','below'],['≥10','>=10','>10','above'],['note','remark','cap'],['date','effective','month','wef','period']];
+  const guess = i => hdrs.findIndex(h => syn[i].some(k => h.toLowerCase().includes(k)));
+  const fieldRows = COLS.map((f, i) => `<div class="frow"><div class="k">${f}</div><div class="v">
+    <select id="mapf${i}" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px">
+      <option value="-1">— skip —</option>
+      ${hdrs.map((h, j) => `<option value="${j}" ${guess(i) === j ? 'selected' : ''}>${esc(h)}${sample[j] ? ' — e.g. "' + esc(String(sample[j]).slice(0,25)) + '"' : ''}</option>`).join('')}
+    </select></div></div>`).join('');
+  document.getElementById('modalHost').innerHTML = `<div class="overlay">
+    <div class="modal">
+      <div class="mh"><div><h3>Map Raw File Columns</h3><p>This file isn't in the template format — match its columns to the grid fields</p></div>
+      <button class="close" onclick="closeModal()">✕</button></div>
+      <div class="mb">
+        ${fieldRows}
+        <div class="frow"><div class="k">Insurer Name<br><span style="font-weight:400;text-transform:none">(if not a column)</span></div>
+          <div class="v"><input id="mapIns" placeholder="e.g. Star Health Insurance" style="width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px"></div></div>
+        <div style="display:flex;gap:10px;margin-top:18px">
+          <button class="btn btn-accent" onclick="mapperImport(${best})">⬆ Import to Draft</button>
+          <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+function mapperImport(hr){
+  const map = COLS.map((_, i) => +document.getElementById('mapf' + i).value);
+  const fixedIns = document.getElementById('mapIns').value.trim();
+  if (map[0] < 0 && !fixedIns) return toast('⚠ Map an Insurer column or type the insurer name.');
+  const recs = [];
+  for (let i = hr + 1; i < pendingAoa.length; i++){
+    const r = pendingAoa[i];
+    if (!r || !r.some(c => String(c||'').trim())) continue;
+    const rec = COLS.map((_, c) => {
+      if (map[c] < 0) return '';
+      const v = c === 9 ? normEffDate(r[map[c]]) : r[map[c]];
+      return String(v == null ? '' : v).trim();
+    });
+    if (!rec[0]) rec[0] = fixedIns;
+    if (!rec[0]) continue;
+    rec.push('');
+    recs.push(rec);
+  }
+  closeModal();
+  pendingAoa = null;
+  if (!recs.length) return toast('⚠ No data rows found after mapping.');
+  draftAdd(recs, fileName);
+}
+
+/* ---------- Persistence ---------- */
+function persistGrid(){
+  try{
+    localStorage.setItem('gmp_grid', JSON.stringify({file: fileName, ts: Date.now(), rows}));
+    // monthly snapshot history
+    const month = new Date().toISOString().slice(0,7);
+    const h = JSON.parse(localStorage.getItem('gmp_history') || '[]');
+    const rated = rows.map(r => pct(r[5])).filter(p => p !== null);
+    h.push({ ts: Date.now(), month, file: fileName,
+      rules: rows.length, insurers: [...new Set(rows.map(r => r[0]))].length,
+      avgRate: rated.length ? +(rated.reduce((a,b) => a+b, 0)/rated.length).toFixed(2) : null,
+      by: currentUser() ? currentUser().email : '' });
+    localStorage.setItem('gmp_history', JSON.stringify(h.slice(-120)));
+    // full grid snapshot per month (for Excel reports) — keep last 12 months
+    const snaps = JSON.parse(localStorage.getItem('gmp_snapshots') || '{}');
+    snaps[month] = {ts: Date.now(), file: fileName, rows};
+    const keep = Object.keys(snaps).sort().slice(-12);
+    localStorage.setItem('gmp_snapshots', JSON.stringify(Object.fromEntries(keep.map(k => [k, snaps[k]]))));
+  }catch(e){}
+  cloudSaveGrid();
+}
+// Excel date serials (e.g. 1-May-2026 arrives as 46143) — format them
+function serialToDate(v){
+  const n = typeof v === 'number' ? v : (/^\d{5}$/.test(String(v||'').trim()) ? +String(v).trim() : null);
+  if (n === null || n < 20000 || n > 80000) return v;
+  const d = XLSX.SSF.parse_date_code(n);
+  if (!d) return v;
+  return String(d.d).padStart(2,'0') + '-' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.m-1] + '-' + d.y;
+}
+// bare numbers in rate cells (0.3814 or 38.14) → "38.14%"
+function normRate(v){
+  if (typeof v === 'number' && isFinite(v)) return v === 0 ? '0%' : fmtRate(v);
+  const s = String(v == null ? '' : v).trim();
+  if (/^\d*\.?\d+$/.test(s)) return fmtRate(parseFloat(s));
+  return s;
+}
+// clean noisy location labels, e.g. "0% — Specific Cities (hover for list)" → "Specific Cities"
+function cleanLoc(s){
+  let t = String(s||'').replace(/\(?\s*hover[^)]*\)?/ig, '').trim();
+  if (/specific\s*cities/i.test(t)) return 'Specific Cities';
+  return t.replace(/^0%\s*[—–-]*\s*/,'').replace(/\s*[\/—–-]+\s*$/,'').trim() || 'All';
+}
+// normalize every effective-date style to one format: MMM-YYYY
+const MON3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function normEffDate(v){
+  let s = String(serialToDate(v) == null ? '' : serialToDate(v)).trim();
+  if (!s || s === '—') return s;
+  let m = s.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[^0-9]*(\d{2,4})/i);
+  if (m){ let y = +m[2]; if (y < 100) y += 2000; return MON3[MON3.findIndex(x => x.toLowerCase() === m[1].toLowerCase().slice(0,3))] + '-' + y; }
+  m = s.match(/fy\s*[-.]?\s*(\d{2,4})/i);                                  // FY26-27 → FY start
+  if (m){ let y = +m[1]; if (y < 100) y += 2000; return 'Apr-' + y; }
+  if (/current|now|live|ongoing|till date/i.test(s)){ const d = new Date(); return MON3[d.getMonth()] + '-' + d.getFullYear(); }
+  m = s.match(/(20\d{2})[-\/.](\d{1,2})/);                                  // 2026-05
+  if (m && +m[2] >= 1 && +m[2] <= 12) return MON3[+m[2]-1] + '-' + m[1];
+  m = s.match(/(\d{1,2})[-\/.](20\d{2})/);                                  // 05/2026
+  if (m && +m[1] >= 1 && +m[1] <= 12) return MON3[+m[1]-1] + '-' + m[2];
+  return s;
+}
+function restoreGrid(){
+  try{
+    const g = JSON.parse(localStorage.getItem('gmp_grid'));
+    if (g && Array.isArray(g.rows) && g.rows.length){
+      rows = g.rows.map(r => {
+        r[9] = String(normEffDate(r[9])); r[3] = cleanLoc(r[3]);
+        for (let j = 5; j <= 7; j++) r[j] = normRate(r[j]);
+        return r;
+      });  // migrate old saved data
+      fileName = g.file || '';
+    }
+  }catch(e){}
+  if (rows.length) buildData();
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+/* ---------- Filter / sort / render ---------- */
+$('q').addEventListener('input', applyFilters);
+function applyFilters(){
+  const q = $('q').value.toLowerCase().trim();
+  const terms = q.split(/\s+/).filter(Boolean);
+  view = displaySrc().filter(r => {
+    if (lobSel && lobOf(r) !== lobSel) return false;
+    if (msSel.fPlan.size && !msSel.fPlan.has(r[1])) return false;
+    if (msSel.fIns.size && !msSel.fIns.has(r[0])) return false;
+    if (msSel.fBiz.size && !msSel.fBiz.has(r[2])) return false;
+    if (msSel.fLoc.size){
+      const cov = String(r[10]||'').toLowerCase();
+      const hit = [...msSel.fLoc].some(c => cov.includes(c.toLowerCase()) || r[3] === c);
+      if (!hit && r[3] !== 'All') return false;   // 'All' location rules cover every city
+    }
+    if (!terms.length) return true;
+    const hay = r.join(' ').toLowerCase();
+    return terms.every(t => hay.includes(t));  // every word must match: insurer, product, business type, notes...
+  });
+  if (sortKey >= 0){
+    view.sort((a,b) => {
+      const pa = pct(a[sortKey]), pb = pct(b[sortKey]);
+      let c = (pa !== null && pb !== null) ? pa - pb : String(a[sortKey]).localeCompare(String(b[sortKey]));
+      return sortAsc ? c : -c;
+    });
+  }
+  render();
+}
+function sortBy(i){
+  sortAsc = (sortKey === i) ? !sortAsc : true; sortKey = i;
+  SHOW.forEach(j => { const a = $('ar'+j); if (a) a.textContent = j===i ? (sortAsc?'▲':'▼') : ''; });
+  applyFilters();
+}
+function badge(t){
+  const s = t.toLowerCase();
+  let cls = 'b-other';
+  if (s.includes('new') || s.includes('fresh')) cls = 'b-new';
+  if (s.includes('renew')) cls = 'b-renew';
+  if (s.includes('port')) cls = 'b-port';
+  if (s.includes('roll')) cls = 'b-roll';
+  return `<span class="badge ${cls}">${esc(t)||'—'}</span>`;
+}
+function rateCell(v){
+  const p = pct(v);
+  let cls = 'rate';
+  if (p !== null && p >= 30) cls += ' rate-hi';
+  if (p === 0 || /^0%/.test(v)) cls += ' rate-zero';
+  const bar = p !== null ? `<div class="ratebar"><i style="width:${Math.min(100, p/50*100)}%"></i></div>` : '';
+  return `<span class="${cls}">${esc(v)||'—'}</span>${bar}`;
+}
+function render(){
+  $('empty').classList.toggle('hidden', view.length > 0);
+  $('tbody').innerHTML = view.map((r, i) => `<tr onclick="openModal(${i})">
+    <td class="insurer">${esc(r[0])}</td>
+    <td>${esc(r[1])}</td>
+    <td>${badge(r[2])}</td>
+    <td class="notes">${esc(r[4])||'—'}${r[10] ? `<span class="locinfo" data-tip="${esc(r[10])}">i</span>` : ''}</td>
+    <td>${rateCell(r[5])}</td>
+    <td>${esc(r[6])||'—'}</td>
+    <td>${esc(r[7])||'—'}</td>
+    <td>${esc(r[9])||'—'}</td>
+    ${isViewer() ? '' : `<td style="text-align:center"><button class="mini-btn" title="Delete this rate" onclick="event.stopPropagation();deleteRow(${i})">✕ Delete</button></td>`}
+  </tr>`).join('');
+}
+
+/* ---------- Modal ---------- */
+function openModal(i){
+  const r = view[i];
+  $('modalHost').innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh"><div><h3>${esc(r[0])}</h3><p>${esc(r[1])}</p></div>
+      <button class="close" onclick="closeModal()">✕</button></div>
+      <div class="mb">${COLS.map((c,j) => `<div class="frow"><div class="k">${c}</div><div class="v">${esc(r[j])||'—'}</div></div>`).join('')}
+      ${r[10] ? `<div class="frow"><div class="k">Covered Locations</div><div class="v" style="font-size:12.5px;color:var(--muted)">${esc(r[10])}</div></div>` : ''}</div>
+    </div></div>`;
+}
+function closeModal(){ $('modalHost').innerHTML = ''; }
+/* ---------- Admin: add / delete grid rows ---------- */
+function deleteRow(i){
+  const r = view[i]; if (!r) return;
+  if (!confirm('Delete this rate from the grid?\n' + (r[0]||'') + ' — ' + (r[1]||'') + '\nViewers will no longer see it.')) return;
+  const idx = rows.indexOf(r);
+  if (idx > -1) rows.splice(idx, 1);
+  buildData();
+  persistGrid();
+  toast('🗑 Row deleted & grid updated');
+}
+function openAddRow(){
+  const U = i => [...new Set([...rows.map(r => r[i]), ...(i===0?masters.insurers:i===1?masters.products:[])].filter(Boolean))].sort((a,b) => String(a).localeCompare(String(b)));
+  const cities = new Set(); rows.forEach(r => cityList(r).forEach(c => cities.add(c)));
+  const dl = (id, vals) => `<datalist id="${id}">${vals.map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
+  $$('modalHost').innerHTML = `<div class="overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div class="mh"><div><h3>Add Insurer / Product</h3><p>Adds a rate row to the grid and publishes it to viewers</p></div>
+        <button class="close" onclick="closeModal()">✕</button></div>
+      <div class="mb">
+        <div class="mgrid">
+          <div style="grid-column:1/-1"><label style="${_apLbl}">Insurer</label><input id="arIns" list="dlAIns" style="${_apInp}" placeholder="e.g. Digit">${dl('dlAIns', U(0))}</div>
+          <div style="grid-column:1/-1"><label style="${_apLbl}">Product / Plan</label><input id="arProd" list="dlAProd" style="${_apInp}" placeholder="e.g. Motor">${dl('dlAProd', U(1))}</div>
+          <div><label style="${_apLbl}">Business type</label><input id="arBiz" list="dlABiz" style="${_apInp}" placeholder="New / Renewal">${dl('dlABiz', U(2))}</div>
+          <div><label style="${_apLbl}">Location</label><input id="arLoc" list="dlALoc" style="${_apInp}" placeholder="City / All">${dl('dlALoc', [...cities].sort((a,b)=>String(a).localeCompare(String(b))))}</div>
+          <div style="grid-column:1/-1"><label style="${_apLbl}">Sub-condition (optional)</label><input id="arSub" style="${_apInp}" placeholder="e.g. Senior Citizen"></div>
+          <div><label style="${_apLbl}">Commission rate (IDEAL)</label><input id="arRate" style="${_apInp}" placeholder="e.g. 32%"></div>
+          <div><label style="${_apLbl}">Effective date</label><input id="arEff" style="${_apInp}" placeholder="e.g. Jul-2026"></div>
+          <div><label style="${_apLbl}">SI Slab: &lt; 10 Lac</label><input id="arSi1" style="${_apInp}" placeholder="e.g. 30%"></div>
+          <div><label style="${_apLbl}">SI Slab: ≥ 10 Lac</label><input id="arSi2" style="${_apInp}" placeholder="e.g. 35%"></div>
+          <div style="grid-column:1/-1"><label style="${_apLbl}">Notes (optional)</label><input id="arNote" style="${_apInp}" placeholder="Caps, conditions…"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+          <button class="btn btn-accent" onclick="saveAddRow()">＋ Add to grid</button>
+        </div>
+      </div>
+    </div></div>`;
+}
+function saveAddRow(){
+  const gv = x => ($$(x) ? $$(x).value.trim() : '');
+  const ins = gv('arIns'), prod = gv('arProd');
+  if (!ins || !prod) return toast('⚠ Enter at least the insurer and product.');
+  const loc = gv('arLoc');
+  const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const d = new Date(); const eff = gv('arEff') || (MON[d.getMonth()] + '-' + d.getFullYear());
+  const row = new Array(11).fill('');
+  row[0] = ins; row[1] = prod; row[2] = gv('arBiz'); row[3] = loc || 'All'; row[4] = gv('arSub');
+  row[5] = gv('arRate'); row[6] = gv('arSi1'); row[7] = gv('arSi2'); row[8] = gv('arNote'); row[9] = eff; row[10] = loc;
+  rows.push(row);
+  buildData();
+  persistGrid();
+  closeModal();
+  toast('✓ Added to the grid');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+
+
+/* ---------- Monthly custom report — Excel (Admin + Super Admin) ---------- */
+function monthRows(x){
+  try{
+    if (x.rowsJson) return JSON.parse(x.rowsJson);                       // cloud snapshot
+    const snaps = JSON.parse(localStorage.getItem('gmp_snapshots') || '{}');
+    if (snaps[x.month] && snaps[x.month].rows) return snaps[x.month].rows;  // local snapshot
+    if (x.month === new Date().toISOString().slice(0,7) && rows.length) return rows;  // current grid
+  }catch(e){}
+  return null;
+}
+$('btnHistPdf').onclick = async () => {
+  const me = currentUser();
+  if (!me || me.role === 'Viewer') return toast('⛔ Not available for Viewers.');
+  if (!histItems.length) return toast('⚠ No monthly snapshots yet.');
+  if (typeof ExcelJS === 'undefined') return toast('❌ Excel library not loaded — check internet connection.');
+  const from = $('repFrom').value, to = $('repTo').value;
+  let items = histItems.filter(x => (!from || x.month >= from) && (!to || x.month <= to));
+  if (!items.length) return toast('⚠ No snapshots in that range.');
+  items = [...items].sort((a,b) => a.month.localeCompare(b.month));
+
+  const GREEN = 'FF2D4E31', GOLD = 'FFC9962C', ZEBRA = 'FFF3F7F3', WHITE = 'FFFFFFFF';
+  const thin = {style:'thin', color:{argb:'FFB9CBBB'}};
+  const bAll = {top:thin, left:thin, bottom:thin, right:thin};
+  const fill = c => ({type:'pattern', pattern:'solid', fgColor:{argb:c}});
+  const fnt = (o={}) => ({name:'Arial', size:10, ...o});
+
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Grid Matrix Portal';
+
+  // ---- Summary sheet ----
+  const s = wb.addWorksheet('Summary', {views:[{showGridLines:false}]});
+  s.columns = [{width:22},{width:26},{width:36},{width:10},{width:11},{width:13},{width:10},{width:32}];
+  s.mergeCells('A1:H1');
+  Object.assign(s.getCell('A1'), {value:'MONTHLY DATA REPORT — GRID MATRIX PORTAL',
+    font:fnt({bold:true, size:14, color:{argb:WHITE}}), fill:fill(GREEN),
+    alignment:{horizontal:'center', vertical:'middle'}});
+  s.getRow(1).height = 30;
+  const meta = [['Period', items[0].month + (items.length > 1 ? '  to  ' + items[items.length-1].month : '')],
+    ['Generated', new Date().toLocaleString()], ['Generated By', me.email],
+    ['Months Covered', items.length],
+    ['Total Uploads', items.reduce((t,x) => t + (x.uploads||1), 0)]];
+  meta.forEach((m, i) => {
+    const r = s.getRow(3 + i);
+    r.getCell(1).value = m[0]; r.getCell(1).font = fnt({bold:true, color:{argb:'FF2D4E31'}});
+    r.getCell(2).value = m[1]; r.getCell(2).font = fnt();
+  });
+  const hRow = s.getRow(10);
+  ['Month','Last Upload','File','Rules','Insurers','Avg Rate %','Uploads','Uploaded By'].forEach((h, i) => {
+    const c = hRow.getCell(i+1);
+    c.value = h; c.font = fnt({bold:true, color:{argb:WHITE}, size:9.5});
+    c.fill = fill(GREEN); c.border = bAll;
+    c.alignment = {horizontal:'center', vertical:'middle'};
+  });
+  hRow.height = 22;
+  items.forEach((x, i) => {
+    const r = s.getRow(11 + i);
+    [x.month, x.ts ? new Date(x.ts).toLocaleDateString() : '', x.file||'', x.rules ?? '', x.insurers ?? '',
+     x.avgRate != null ? x.avgRate + '%' : '', x.uploads ?? 1, x.by||''].forEach((v, j) => {
+      const c = r.getCell(j+1);
+      c.value = v; c.font = fnt(j === 0 ? {bold:true} : {});
+      c.border = bAll; c.alignment = {vertical:'middle'};
+      if (i % 2) c.fill = fill(ZEBRA);
+    });
+  });
+
+  // ---- One styled sheet per month: full grid as uploaded ----
+  let full = 0;
+  for (const x of items){
+    const data = monthRows(x);
+    if (!data || !data.length) continue;
+    const ws = wb.addWorksheet(x.month, {views:[{state:'frozen', ySplit:2}]});
+    ws.columns = [24,32,22,18,28,22,15,15,48,15,48].map(w => ({width:w}));
+    ws.mergeCells('A1:K1');
+    Object.assign(ws.getCell('A1'), {value:'HEALTH INSURANCE — COMMISSION GRID · ' + x.month + (x.file ? '  ·  ' + x.file : ''),
+      font:fnt({bold:true, size:13, color:{argb:WHITE}}), fill:fill(GREEN),
+      alignment:{horizontal:'center', vertical:'middle'}});
+    ws.getRow(1).height = 28;
+    const hr = ws.getRow(2);
+    [...COLS, 'Covered Locations'].forEach((h, i) => {
+      const c = hr.getCell(i+1);
+      c.value = h; c.font = fnt({bold:true, color:{argb:WHITE}, size:9});
+      c.fill = fill(i === 6 || i === 7 ? GOLD : GREEN);   // SI slab columns in gold, like the master grid
+      c.border = bAll;
+      c.alignment = {horizontal:'center', vertical:'middle', wrapText:true};
+    });
+    hr.height = 28;
+    data.forEach((row, i) => {
+      const r = ws.getRow(3 + i);
+      for (let j = 0; j < 11; j++){
+        const c = r.getCell(j+1);
+        c.value = row[j] || '';
+        c.font = fnt(j === 0 ? {bold:true, color:{argb:'FF2D4E31'}} : j === 5 ? {bold:true} : {size:9.5});
+        c.border = bAll;
+        c.alignment = {vertical:'top', wrapText:true};
+        if (i % 2) c.fill = fill(ZEBRA);
+      }
+    });
+    full++;
+  }
+
+  const buf = await wb.xlsx.writeBuffer();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+  a.download = 'Monthly_Data_Report_' + items[0].month + '_to_' + items[items.length-1].month + '.xlsx';
+  a.click();
+  toast('⬇ Excel report: ' + items.length + ' months, ' + full + ' with full grid data');
+};
+
+/* ---------- Toast ---------- */
+let tt;
+function toast(m){
+  clearTimeout(tt);
+  let t = document.querySelector('.toast');
+  if (!t){ t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = m;
+  tt = setTimeout(() => t.remove(), 3500);
+}
+</script>
+<style>.dl-dd.dl-up .dl-pnl,.msdd.dl-up .pnl{top:auto!important;bottom:110%!important}</style>
+<script>
+(function(){
+ function place(dd){
+   var pnl=dd.querySelector('.dl-pnl,.pnl'); var btn=dd.querySelector('button');
+   if(!pnl||!btn) return;
+   var b=btn.getBoundingClientRect();
+   var below=window.innerHeight-b.bottom-14, above=b.top-14;
+   var flip=(below<Math.min(300,pnl.scrollHeight))&&(above>below);
+   // only touch the DOM when something actually changes (no observer here, but stay cheap)
+   if(flip!==dd.classList.contains('dl-up')) dd.classList.toggle('dl-up',flip);
+   var mh=flip?Math.min(340,above):Math.min(340,Math.max(150,below));
+   var mhpx=mh+'px';
+   if(pnl.style.maxHeight!==mhpx) pnl.style.maxHeight=mhpx;
+ }
+ function run(){ document.querySelectorAll('.dl-dd.open,.msdd.open').forEach(place); }
+ // after any click, let the grid engine toggle .open first, then position once
+ document.addEventListener('click',function(){ requestAnimationFrame(run); },false);
+ window.addEventListener('resize',run);
+})();
+</script>
+</body>
+</html>
+                                                                                                                                                                                                                 
