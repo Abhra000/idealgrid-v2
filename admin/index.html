@@ -273,6 +273,8 @@ body.locked #loginPage{display:flex;min-height:100vh;align-items:center;justify-
 /* ROOT CAUSE FIX: the admin's page-layout rule `main{margin-left:230px;padding:...}` was also hitting
    the grid engine's <main class="dl-main">, pushing the table 230px right and overflowing it. */
 main.dl-main{margin-left:0!important;padding:0!important;transition:none!important}
+#lobPreviewHost .dl-tbl tbody tr.dl-clk{cursor:pointer}
+#lobPreviewHost .dl-tbl tbody tr.dl-clk:hover{background:#FFF3D6!important}
 #lobPreviewHost .dl-scroll{max-height:62vh}
 @media(max-width:880px){
   .dl-shell{grid-template-columns:1fr;padding:14px 12px}
@@ -567,7 +569,7 @@ window.DynLOB=(function(){
   function availRows(except){return S.rows.filter(r=>{for(const k in S.sel){if(String(k)===String(except))continue;if(S.sel[k].size&&!S.sel[k].has(r[k]))return false;}return true;});}
   function distinctOf(i){const s=new Set();availRows(i).forEach(r=>{if(r[i]!==''&&r[i]!=null)s.add(r[i]);});return [...s].sort((a,b)=>String(a).localeCompare(String(b)));}
   function refreshOptions(){S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd||dd.classList.contains('open'))return;const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';dd.querySelector('.dl-pnl').innerHTML=`<div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}`+vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('');});}
-  function mount(host){S.host=host;host.innerHTML=`
+  function mount(host){S.host=host;host.onclick=function(e){if(!S.rowClick)return;const tr=e.target.closest('tr[data-ri]');if(!tr||!host.contains(tr))return;const ri=+tr.dataset.ri;S.rowClick(ri,S.rows[ri]);};host.innerHTML=`
     <div class="dl-bar"><button class="dl-ftoggle" onclick="DynLOB.toggle()">⚙ Filters</button></div>
     <aside class="dl-filters"><div class="dl-fp"><b>Filters</b><button class="dl-clearall2" onclick="DynLOB.reset()">Reset all</button></div><div class="dl-fhost"></div></aside>
     <main class="dl-main">
@@ -575,7 +577,7 @@ window.DynLOB=(function(){
       <div class="dl-chips"></div>
       <div class="dl-wrap"><div class="dl-scroll"><table class="dl-tbl"><thead><tr class="dl-thr"></tr></thead><tbody class="dl-tb"></tbody></table></div><div class="dl-empty" style="display:none">No rows match your filters.</div></div>
     </main>`;}
-  function load(ds){S.cols=ds.columns||[];S.rows=(ds.rows||[]).slice();S.rateCol=ds.rateCol==null?-1:ds.rateCol;S.cfg=(ds.cfg&&ds.cfg.length)?ds.cfg:S.cols.map(()=>({show:true,filter:false}));S.sel={};S.q='';S.sortKey=-1;const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
+  function load(ds){S.cols=ds.columns||[];S.rows=(ds.rows||[]).slice();S.rows.forEach((r,ix)=>{try{r._i=ix;}catch(e){}});S.rateCol=ds.rateCol==null?-1:ds.rateCol;S.cfg=(ds.cfg&&ds.cfg.length)?ds.cfg:S.cols.map(()=>({show:true,filter:false}));S.sel={};S.q='';S.sortKey=-1;const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
   function buildFilters(){const host=q('.dl-fhost');const parts=[];S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;if(!S.sel[i])S.sel[i]=new Set();const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';parts.push(`<div class="dl-dd" data-i="${i}"><button type="button" onclick="DynLOB.open(${i})"></button><div class="dl-pnl"><div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}${vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('')}</div></div>`);});host.innerHTML=parts.join('')||'<div style="color:var(--muted);font-size:13px">No filters for this grid.</div>';S.cols.forEach((h,i)=>{if(S.cfg[i]&&S.cfg[i].filter)label(i);});}
   function label(i){const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd)return;const n=S.sel[i].size;dd.querySelector('button').textContent=n?S.cols[i]+' · '+n:'All '+S.cols[i];}
   function open(i){S.host.querySelectorAll('.dl-dd.open').forEach(d=>{if(d.dataset.i!=i)d.classList.remove('open');});q(`.dl-dd[data-i="${i}"]`).classList.toggle('open');}
@@ -589,12 +591,12 @@ window.DynLOB=(function(){
   function apply(){const terms=S.q.split(/\s+/).filter(Boolean);S.view=S.rows.filter(r=>{for(const i in S.sel){if(S.sel[i].size&&!S.sel[i].has(r[i]))return false;}if(!terms.length)return true;const hay=r.join(' ').toLowerCase();return terms.every(t=>hay.includes(t));});if(S.sortKey>=0){S.view.sort((a,b)=>{const x=a[S.sortKey],y=b[S.sortKey],nx=parseFloat(x),ny=parseFloat(y);let c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:String(x).localeCompare(String(y));return S.sortAsc?c:-c;});}render();}
   function sortBy(i){S.sortAsc=(S.sortKey===i)?!S.sortAsc:true;S.sortKey=i;apply();}
   const CAP=5000;
-  function render(){const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const shown=S.view.slice(0,CAP);q('.dl-count').textContent=S.view.length>CAP?`showing ${CAP} of ${S.view.length}`:S.view.length+' of '+S.rows.length+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr>'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${esc(val)}</td>`;}).join('')+'</tr>').join('');chips();}
+  function render(){const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const shown=S.view.slice(0,CAP);q('.dl-count').textContent=S.view.length>CAP?`showing ${CAP} of ${S.view.length}`:S.view.length+' of '+S.rows.length+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr data-ri="'+r._i+'"'+(S.rowClick?' class="dl-clk"':'')+'>'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${esc(val)}</td>`;}).join('')+'</tr>').join('');chips();}
   function chips(){const host=q('.dl-chips');const items=[];Object.keys(S.sel).forEach(i=>{[...S.sel[i]].forEach(v=>{items.push(`<span class="dl-chip" data-i="${i}" data-v="${esc(v)}">${esc(S.cols[i])}: ${esc(v)} <b>✕</b></span>`);});});host.innerHTML=items.length?items.join('')+'<span class="dl-chip dl-clearall">Clear all</span>':'';}
   function toggle(){S.host.classList.toggle('dl-open');}
   document.addEventListener('click',e=>{const c=e.target.closest('.dl-chip');if(!c||!S.host||!S.host.contains(c))return;if(c.classList.contains('dl-clearall')){reset();return;}const i=c.dataset.i,v=c.dataset.v;if(S.sel[i]){S.sel[i].delete(v);buildFilters();apply();}});
   document.addEventListener('click',e=>{if(S.host&&!e.target.closest('.dl-dd'))S.host.querySelectorAll('.dl-dd.open').forEach(d=>d.classList.remove('open'));});
-  return {mount,load,build,open,pick,clear:clr,msearch,reset,search,sort:sortBy,toggle,state:S};
+  return {mount,load,build,open,pick,clear:clr,msearch,reset,search,sort:sortBy,toggle,state:S,rowClick:function(fn){S.rowClick=fn;}};
 })();
 
 </script>
@@ -972,13 +974,15 @@ function showLobPreview(ds){
   $$('lobPreviewCard').classList.remove('hidden'); $$('lobCfgCard').classList.remove('hidden');
   $$('lobPreviewName').textContent='Preview — '+(ds.name||'');
   DynLOB.load(ds); renderLobCfg(ds);
+  $$('lobPreviewName').innerHTML='Preview — '+esc(ds.name||'')+(ds.fresh?' <span class="desc" style="font-weight:400">— not published yet · publish before editing individual rates</span>':' <span class="desc" style="font-weight:400">— click any row to edit its rate</span>');
+  DynLOB.rowClick(onPreviewRowClick);
 }
 function renderLobCfg(ds){
   const host=$$('lobCfg'); if(!host) return;
   host.innerHTML='<table class="utable" style="min-width:420px"><thead><tr><th>Column</th><th style="text-align:center">Show</th><th style="text-align:center">Filter</th></tr></thead><tbody>'+
     ds.columns.map((h,i)=>`<tr><td>${esc(h)}${i===ds.rateCol?' <span style="color:var(--accent);font-weight:700">(rate)</span>':''}</td>
-      <td style="text-align:center"><input type="checkbox" ${ds.cfg[i]&&ds.cfg[i].show?'checked':''} onchange="pendingLob.cfg[${i}].show=this.checked;DynLOB.load(pendingLob)"></td>
-      <td style="text-align:center"><input type="checkbox" ${ds.cfg[i]&&ds.cfg[i].filter?'checked':''} ${i===ds.rateCol?'disabled':''} onchange="pendingLob.cfg[${i}].filter=this.checked;DynLOB.load(pendingLob)"></td></tr>`).join('')+'</tbody></table>';
+      <td style="text-align:center"><input type="checkbox" ${ds.cfg[i]&&ds.cfg[i].show?'checked':''} onchange="pendingLob.cfg[${i}].show=this.checked;pendingLob.cfgTouched=true;DynLOB.load(pendingLob)"></td>
+      <td style="text-align:center"><input type="checkbox" ${ds.cfg[i]&&ds.cfg[i].filter?'checked':''} ${i===ds.rateCol?'disabled':''} onchange="pendingLob.cfg[${i}].filter=this.checked;pendingLob.cfgTouched=true;DynLOB.load(pendingLob)"></td></tr>`).join('')+'</tbody></table>';
 }
 function slugify(s){ return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||('lob-'+Date.now()); }
 if($$('lobFile')) $$('lobFile').onchange=async e=>{
@@ -987,7 +991,7 @@ if($$('lobFile')) $$('lobFile').onchange=async e=>{
   try{
     const wb=XLSX.read(new Uint8Array(await f.arrayBuffer()),{type:'array'});
     const built=DynLOB.build(l.name,wb);
-    pendingLob={id, name:l.name, templateCols:(l.templateCols&&l.templateCols.length?l.templateCols:built.columns), columns:built.columns, rows:built.rows, rateCol:built.rateCol, cfg:built.cfg};
+    pendingLob={id, name:l.name, templateCols:(l.templateCols&&l.templateCols.length?l.templateCols:built.columns), columns:built.columns, rows:built.rows, rateCol:built.rateCol, cfg:built.cfg, fresh:true};
     $$('lobMeta').textContent='Parsed '+built.columns.length+' columns, '+built.rows.length+' rows. Review below, then Publish changes.';
     showLobPreview(pendingLob);
   }catch(err){ toast('❌ Could not read file: '+(err.message||'')); }
@@ -1020,6 +1024,7 @@ async function publishLob(){
     const snap=await ref.get(); const cur=snap.exists?snap.data():null;
     const curRows=cur?_sp(cur.rowsJson):[];
     let baseRows=[];
+    const merging=!!(cur && cur.month===month && curRows.length);
     if(cur && cur.month===month) baseRows=curRows.map(r=>r.slice());              // continue same month → stack
     if(cur && cur.month && cur.month!==month && curRows.length){                  // new month → archive previous
       await db.collection('gmp_lob_archive').doc(pendingLob.id+'__'+cur.month).set({
@@ -1040,7 +1045,9 @@ async function publishLob(){
         if(renIdx>=0 && nr[renIdx]!=null && nr[renIdx]!=='') ex[renIdx]=nr[renIdx];
       } else { const row=nr.slice(); row[rc]=seg; merged.push(row); idx.set(k,merged.length-1); }
     });
-    const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(pendingLob.cfg||[]);
+    let cfgOut=pendingLob.cfg||[];
+    if(merging && !pendingLob.cfgTouched && Array.isArray(cur.columns) && cur.columns.join('|')===cols.join('|')){ const oc=_sp(cur.cfgJson); if(oc.length===cols.length) cfgOut=oc; }  // partial upload can't hide columns
+    const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(cfgOut);
     if(rowsJson.length>950000) return toast('⚠ Too large ('+Math.round(rowsJson.length/1024)+'KB, ~950KB max). Split the sheet.');
     await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, rowsJson, rateCol:rc, cfgJson, month, lastPeriod:label, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
     // log to Month-Wise Data (Settings history) so LOB uploads show their date
@@ -1053,6 +1060,71 @@ async function publishLob(){
       },{merge:true}).catch(()=>{});
     }catch(e){}
     toast('✅ Published "'+pendingLob.name+'" · '+label+((cur&&cur.month&&cur.month!==month)?' · archived '+cur.month:''));
+  }catch(e){ toast('❌ '+(e.message||'failed')); }
+}
+/* ---- Edit a single rate from the admin preview (no Excel) ---- */
+function _perList(v){ return String(v==null?'':v).split(/\s*~~\s*/).filter(Boolean).map(p=>{const kv=p.split(/\s*@@\s*/);return {rate:kv[0]||'',label:kv[1]||''};}); }
+function onPreviewRowClick(ri,row){
+  if(!pendingLob||!row) return;
+  if(pendingLob.fresh) return toast('⚠ Publish this upload first, then edit individual rates.');
+  const u=currentUser(); if(!u||u.role==='Viewer') return toast('⚠ View-only access.');
+  const cols=pendingLob.columns||[], rc=(pendingLob.rateCol==null?-1:pendingLob.rateCol);
+  if(rc<0) return toast('⚠ This grid has no rate column.');
+  const renIdx=cols.findIndex(h=>/renewal/i.test(h));
+  window._rateEdit={lobId:pendingLob.id, row:row.slice(), cols:cols.slice(), rc};
+  const params=cols.map((h,i)=>({h,v:row[i]})).filter((x,i)=>i!==rc&&i!==renIdx&&x.v!==''&&x.v!=null);
+  const curList=_perList(row[rc]);
+  const log=((lobs[pendingLob.id]||{}).editLog||[]).slice(-5).reverse();
+  const L='display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px';
+  const I='width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:13.5px';
+  $$('modalHost').innerHTML=`<div class="overlay" onclick="if(event.target===this)closeModal()"><div class="modal">
+    <div class="mh"><div><h3>Edit rate</h3><p>${esc(pendingLob.name||'')}</p></div><button class="close" onclick="closeModal()">✕</button></div>
+    <div class="mb">
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${params.map(x=>`<span class="dl-chip" style="padding:4px 10px"><span style="font-weight:500;color:var(--muted)">${esc(x.h)}:</span>&nbsp;${esc(x.v)}</span>`).join('')}</div>
+      <div style="margin-bottom:14px"><span style="${L}">Current rate</span>${curList.length?curList.map(p=>`<div class="dl-per"><b>${esc(p.rate)}</b>${p.label?` <span>${esc(p.label)}</span>`:''}</div>`).join(''):'<div class="desc">—</div>'}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div><label style="${L}">New rate % *</label><input id="reRate" style="${I}" placeholder="e.g. 27.5" inputmode="decimal"></div>
+        <div><label style="${L}">Effective From *</label><input id="reFrom" type="date" style="${I}"></div>
+        <div><label style="${L}">Effective To *</label><input id="reTo" type="date" style="${I}"></div>
+      </div>
+      <div class="desc" style="margin-top:10px">Same dates as an existing period <b>replace</b> that rate. New dates in the same month <b>add</b> a dated rate alongside. For a new month, upload the full grid.</div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+        <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-accent" onclick="saveRateEdit()">Save rate</button>
+      </div>
+      ${log.length?`<div style="margin-top:18px;padding-top:12px;border-top:2px dashed var(--line)"><span style="${L}">Recent edits in this LOB</span>${log.map(x=>`<div class="desc" style="font-size:12px;margin:3px 0">${new Date(x.ts).toLocaleString()} · <b>${esc(x.insurer||'')}</b> ${esc(x.key||'')} · ${esc(x.from||'—')} → <b>${esc(x.to)}</b> (${esc(x.period)}) · ${esc(x.by||'')}</div>`).join('')}</div>`:''}
+    </div></div></div>`;
+  setTimeout(()=>{ const r=$('reRate'); if(r) r.focus(); },50);
+}
+async function saveRateEdit(){
+  const E=window._rateEdit; if(!E) return;
+  if(!cloudOn||!db) return toast('⚠ Connect Firebase first.');
+  const raw=($('reRate').value||'').trim().replace(/%\s*$/,'').trim();
+  if(!/^\d+(\.\d+)?$/.test(raw)) return toast('⚠ Enter the new rate as a number, e.g. 27.5');
+  const nv=(+raw)+'%';
+  const from=$('reFrom').value, to=$('reTo').value;
+  if(!from||!to) return toast('⚠ Set Effective From and Effective To.');
+  if(from>to) return toast('⚠ Effective From is after Effective To.');
+  const label=periodLabel(from,to), month=from.slice(0,7);
+  try{
+    const ref=db.collection('gmp_lobs').doc(E.lobId); const snap=await ref.get();
+    if(!snap.exists) return toast('❌ Grid not found — publish it first.');
+    const cur=snap.data(); const rows=_sp(cur.rowsJson); const cols=cur.columns||E.cols;
+    const rc=(cur.rateCol==null?E.rc:cur.rateCol);
+    if(cur.month && cur.month!==month) return toast('⚠ Dates must fall in the grid\'s current month ('+cur.month+'). For a new month, upload the full grid.');
+    const renIdx=cols.findIndex(h=>/renewal/i.test(h));
+    const keyOf=r=>r.map((x,i)=>(i===rc||i===renIdx)?'':String(x==null?'':x)).join('\u0001');
+    const k=keyOf(E.row); const idx=rows.findIndex(r=>keyOf(r)===k);
+    if(idx<0) return toast('❌ Row not found in the published grid — refresh and try again.');
+    const old=String(rows[idx][rc]==null?'':rows[idx][rc]);
+    const parts=old.split(/\s*~~\s*/).filter(Boolean).filter(p=>p.split(/\s*@@\s*/)[1]!==label);
+    parts.push(nv+PKV+label); rows[idx][rc]=parts.join(PSEP);
+    const u=currentUser(); const ii=cols.findIndex(h=>/insurer|company/i.test(h));
+    const log=Array.isArray(cur.editLog)?cur.editLog.slice(-199):[];
+    log.push({ts:Date.now(), by:u?u.email:'', insurer:String(rows[idx][ii<0?0:ii]||''), from:old.split(/\s*@@\s*/)[0]&&old.indexOf('@@')<0?old:_perList(old).map(p=>p.rate+(p.label?' ('+p.label+')':'')).join('; '), to:nv, period:label,
+      key:E.row.filter((x,i)=>i!==rc&&i!==renIdx&&i!==(ii<0?0:ii)&&x!==''&&x!=null&&x!=='All').slice(0,6).join(' · ')});
+    await ref.set({rowsJson:JSON.stringify(rows), month:cur.month||month, lastPeriod:cur.lastPeriod||label, editLog:log, ts:Date.now(), by:u?u.email:''},{merge:true});
+    closeModal(); toast('✅ Rate updated · '+nv+' · '+label);
   }catch(e){ toast('❌ '+(e.message||'failed')); }
 }
 /* ---- archived monthly grids (download) ---- */
