@@ -386,6 +386,15 @@ function loadScript(src){ return new Promise((res, rej) => { const s = document.
 function setLive(text, cls){ const e = document.getElementById('live'); e.className = 'live ' + (cls||''); document.getElementById('liveText').textContent = text; }
 
 let db = null, reqs = [], reqSel = {}, masters = { insurers: [], products: [] }, lobs = {};
+/* gzip-compressed grid storage (rowsZ = base64 gzip of rowsJson) — lets big grids fit Firestore's 1 MB doc limit */
+async function zUnpack(d){
+  if (!d || !d.rowsZ) return;
+  try{
+    const bin = atob(d.rowsZ), u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    d.rowsJson = await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  }catch(e){ d.rowsJson = '[]'; }
+}
 try{ const _m = JSON.parse(localStorage.getItem('gmp_masters')); if (_m){ masters.insurers = _m.insurers||[]; masters.products = _m.products||[]; } }catch(e){}
 async function boot(){
   try{ DynLOB.mount(document.getElementById("dynHost")); }catch(e){}
@@ -408,9 +417,10 @@ async function boot(){
       reqs = s.docs.map(d => ({ id: d.id, ...d.data() }));
       renderReqList();
     }, () => {});
-    db.collection('gmp_lobs').onSnapshot(s => {
-      lobs = {}; s.forEach(d => lobs[d.id] = { id:d.id, ...d.data() });
-      populateLobs();
+    db.collection('gmp_lobs').onSnapshot(async s => {
+      const nl = {}; s.forEach(d => nl[d.id] = { id:d.id, ...d.data() });
+      await Promise.all(Object.values(nl).map(zUnpack));      // large grids are stored gzip-compressed
+      lobs = nl; populateLobs();
     }, () => {});
     db.collection('gmp_meta').doc('masters').onSnapshot(doc => {
       const d = doc.data() || {};
