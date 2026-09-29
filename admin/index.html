@@ -270,6 +270,9 @@ body.locked #loginPage{display:flex;min-height:100vh;align-items:center;justify-
 #lobPreviewHost .dl-dd{width:auto!important;min-width:168px;margin-bottom:0}
 #lobPreviewHost .dl-fp{width:100%;margin-bottom:6px}
 #lobPreviewHost>.dl-main{display:block!important;width:100%!important;min-width:0}
+/* ROOT CAUSE FIX: the admin's page-layout rule `main{margin-left:230px;padding:...}` was also hitting
+   the grid engine's <main class="dl-main">, pushing the table 230px right and overflowing it. */
+main.dl-main{margin-left:0!important;padding:0!important;transition:none!important}
 #lobPreviewHost .dl-scroll{max-height:62vh}
 @media(max-width:880px){
   .dl-shell{grid-template-columns:1fr;padding:14px 12px}
