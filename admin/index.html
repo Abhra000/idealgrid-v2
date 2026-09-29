@@ -402,7 +402,7 @@ main.dl-main{margin-left:0!important;padding:0!important;transition:none!importa
       <div id="lobEffWrap" style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
         <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Effective From *</label>
           <input type="date" id="lobEffFrom" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px"></div>
-        <label style="display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--muted);max-width:360px;line-height:1.3"><input type="checkbox" id="lobReplace" checked> File is the complete grid for its insurers (their old rows not in this file are removed)</label>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--muted);max-width:360px;line-height:1.3"><input type="checkbox" id="lobReplace" checked> Replace: for each insurer + product type in this file, remove its old rows that aren't in the file</label>
         <button class="btn btn-accent" onclick="publishLob()">Publish changes</button>
       </div>
       <div class="desc" id="lobEffHint" style="margin-top:8px">The date the new % starts (mandatory). Rows whose % changed show the <b>new rate and the previous rate</b>, each with its own <b>Effective From</b> date; unchanged rows keep their date. A snapshot of the previous month is archived below (downloadable).</div>
@@ -1039,7 +1039,9 @@ function _addSeg(cell,rate,iso,fb){
   let ss=_segs(cell,fb).filter(s=>s.iso!==iso);
   const prev=ss.filter(s=>s.iso<iso).sort((a,b)=>b.iso.localeCompare(a.iso))[0];
   if(!(prev&&_nr(prev.rate)===_nr(rate))) ss.push({rate:String(rate).trim(),iso});
-  ss.sort((a,b)=>b.iso.localeCompare(a.iso));
+  ss.sort((a,b)=>a.iso.localeCompare(b.iso));                       // oldest → newest
+  const cz=[]; ss.forEach(x=>{ if(cz.length && _nr(cz[cz.length-1].rate)===_nr(x.rate)) return; cz.push(x); });   // same % again = no change
+  ss=cz.reverse();
   return ss.slice(0,KEEP_PERIODS).map(s=>s.rate+PKV+'from:'+s.iso).join(PSEP);
 }
 async function publishLob(){
@@ -1061,7 +1063,7 @@ async function publishLob(){
     await zUnpack(cur);
     const curRows=cur?_sp(cur.rowsJson):[];
     const sameCols=!!(cur&&Array.isArray(cur.columns)&&cur.columns.join('|')===cols.join('|'));
-    if(cur && cur.month && cur.month!==month && curRows.length){                  // new month → keep a downloadable snapshot
+    if(cur && cur.month && month>cur.month && curRows.length){                  // new month → keep a downloadable snapshot
       await db.collection('gmp_lob_archive').doc(pendingLob.id+'__'+cur.month).set({
         lobId:pendingLob.id, name:cur.name||pendingLob.name, month:cur.month,
         columns:cur.columns||cols, ...(await zPack(cur.rowsJson||'[]')), rateCol:(cur.rateCol==null?rc:cur.rateCol),
@@ -1073,8 +1075,13 @@ async function publishLob(){
     const ic=Math.max(0,cols.findIndex(h=>/insurer|company/i.test(h)));
     const up=pendingLob.rows||[]; const newKeys=new Set(up.map(keyOf));
     let removed=0, changed=0, added=0;
-    if(replaceIns){ const upIns=new Set(up.map(r=>String(r[ic]||'').trim()));
-      base=base.filter(r=>{ if(upIns.has(String(r[ic]||'').trim())&&!newKeys.has(keyOf(r))){removed++;return false;} return true; }); }
+    const pc=cols.findIndex(h=>/product\s*type|^product$|segment/i.test(h));
+    const scopeOf=r=>String(r[ic]||'').trim()+'\u0001'+(pc>=0?String(r[pc]||'').trim():'');
+    if(replaceIns){ const scope=new Set(up.map(scopeOf));
+      base=base.filter(r=>{ if(!scope.has(scopeOf(r))||newKeys.has(keyOf(r))) return true;
+        const latest=_segs(r[rc],fb).map(x=>x.iso).sort().pop()||'';
+        if(latest>from) return true;                                                  // row has a newer rate → keep
+        removed++; return false; }); }
     const idx=new Map(); base.forEach((r,i)=>idx.set(keyOf(r),i));
     up.forEach(nr=>{
       const raw=String(nr[rc]==null?'':nr[rc]).split(/\s*~~\s*/)[0].split(/\s*@@\s*/)[0].trim();
@@ -1094,7 +1101,7 @@ async function publishLob(){
     const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(cfgOut);
     const P=await zPack(rowsJson), psz=(P.rowsZ||P.rowsJson).length+cfgJson.length;
     if(psz>950000) return toast('⚠ Too large even after compression ('+Math.round(psz/1024)+'KB, ~950KB max).');
-    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, ...P, rateCol:rc, cfgJson, month, lastPeriod:label, effFrom:from, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
+    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, ...P, rateCol:rc, cfgJson, month:(cur&&cur.month&&cur.month>month?cur.month:month), lastPeriod:label, effFrom:from, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
     try{
       const insSet=new Set(merged.map(r=>String(r[ic]==null?'':r[ic]).trim()).filter(Boolean));
       db.collection('gmp_history').doc(pendingLob.id+'__'+month).set({
