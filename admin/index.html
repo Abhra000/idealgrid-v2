@@ -296,6 +296,7 @@ main.dl-main{margin-left:0!important;padding:0!important;transition:none!importa
 .dl-per{padding:1px 0;white-space:nowrap}.dl-per b{color:var(--accent);font-weight:800}.dl-per span{color:var(--muted);font-size:11px;margin-left:5px}.dl-rate-multi{line-height:1.35}
 .dl-more{background:none;border:none;color:var(--accent);font-weight:800;cursor:pointer;padding:0 0 0 4px;font-size:12.5px;text-decoration:underline}
 </style>
+<style>.dl-tbl tbody tr.dl-old td{opacity:.55}.dl-tbl tbody tr.dl-old td.dl-rate{text-decoration:line-through;text-decoration-thickness:1px}</style>
 </head>
 <body class="locked">
 
@@ -396,16 +397,15 @@ main.dl-main{margin-left:0!important;padding:0!important;transition:none!importa
       <input type="file" id="lobSeedFile" accept=".xlsx,.xls,.csv" hidden>
     </div>
     <div class="scard hidden" id="lobCfgCard">
-      <h3>Columns &amp; filters <span class="desc" style="font-weight:400">— toggle show / filter, set the effective dates, then Publish</span></h3>
+      <h3>Columns &amp; filters <span class="desc" style="font-weight:400">— toggle show / filter, set the Effective From date, then Publish</span></h3>
       <div id="lobCfg" style="overflow:auto"></div>
       <div id="lobEffWrap" style="margin-top:14px;padding-top:12px;border-top:1px dashed var(--line);display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
         <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Effective From *</label>
           <input type="date" id="lobEffFrom" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px"></div>
-        <div><label style="display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:5px">Effective To *</label>
-          <input type="date" id="lobEffTo" style="padding:8px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px"></div>
+        <label style="display:flex;gap:7px;align-items:center;font-size:12.5px;color:var(--muted);max-width:360px;line-height:1.3"><input type="checkbox" id="lobReplace" checked> File is the complete grid for its insurers (their old rows not in this file are removed)</label>
         <button class="btn btn-accent" onclick="publishLob()">Publish changes</button>
       </div>
-      <div class="desc" id="lobEffHint" style="margin-top:8px">Date range this commission applies to (mandatory). Another upload for the <b>same month</b> stacks its rate onto each product; a <b>new month</b> archives the previous month below (downloadable).</div>
+      <div class="desc" id="lobEffHint" style="margin-top:8px">The date the new % starts (mandatory). Rows whose % changed show the <b>new rate and the previous rate</b>, each with its own <b>Effective From</b> date; unchanged rows keep their date. A snapshot of the previous month is archived below (downloadable).</div>
     </div>
     <div class="scard hidden" id="lobPreviewCard">
       <h3 id="lobPreviewName">Preview</h3>
@@ -570,7 +570,7 @@ window.DynLOB=(function(){
   function availRows(except){return S.rows.filter(r=>{for(const k in S.sel){if(String(k)===String(except))continue;if(S.sel[k].size&&!S.sel[k].has(r[k]))return false;}return true;});}
   function distinctOf(i){const s=new Set();availRows(i).forEach(r=>{if(r[i]!==''&&r[i]!=null)s.add(r[i]);});return [...s].sort((a,b)=>String(a).localeCompare(String(b)));}
   function refreshOptions(){S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd||dd.classList.contains('open'))return;const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';dd.querySelector('.dl-pnl').innerHTML=`<div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}`+vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('');});}
-  function mount(host){S.host=host;host.onclick=function(e){if(!S.rowClick)return;const tr=e.target.closest('tr[data-ri]');if(!tr||!host.contains(tr))return;const ri=+tr.dataset.ri;S.rowClick(ri,S.rows[ri]);};host.innerHTML=`
+  function mount(host){S.host=host;host.onclick=function(e){if(!S.rowClick)return;const tr=e.target.closest('tr[data-ri]');if(!tr||!host.contains(tr))return;const ri=+tr.dataset.ri;S.rowClick(ri,(S.src||S.rows)[ri]);};host.innerHTML=`
     <div class="dl-bar"><button class="dl-ftoggle" onclick="DynLOB.toggle()">⚙ Filters</button></div>
     <aside class="dl-filters"><div class="dl-fp"><b>Filters</b><button class="dl-clearall2" onclick="DynLOB.reset()">Reset all</button></div><div class="dl-fhost"></div></aside>
     <main class="dl-main">
@@ -578,7 +578,7 @@ window.DynLOB=(function(){
       <div class="dl-chips"></div>
       <div class="dl-wrap"><div class="dl-scroll"><table class="dl-tbl"><thead><tr class="dl-thr"></tr></thead><tbody class="dl-tb"></tbody></table></div><div class="dl-empty" style="display:none">No rows match your filters.</div></div>
     </main>`;}
-  function load(ds){S.showAll=false;S.cols=ds.columns||[];S.rows=(ds.rows||[]).slice();S.rows.forEach((r,ix)=>{try{r._i=ix;}catch(e){}});S.rateCol=ds.rateCol==null?-1:ds.rateCol;S.cfg=(ds.cfg&&ds.cfg.length)?ds.cfg:S.cols.map(()=>({show:true,filter:false}));S.sel={};S.q='';S.sortKey=-1;const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
+  function load(ds){S.showAll=false;S.cols=ds.columns||[];S.rows=(ds.rows||[]).slice();S.rows.forEach((r,ix)=>{try{r._i=ix;}catch(e){}});S.rateCol=ds.rateCol==null?-1:ds.rateCol;S.cfg=(ds.cfg&&ds.cfg.length)?ds.cfg:S.cols.map(()=>({show:true,filter:false}));expand();S.sel={};S.q='';S.sortKey=-1;const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
   function buildFilters(){const host=q('.dl-fhost');const parts=[];S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;if(!S.sel[i])S.sel[i]=new Set();const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';parts.push(`<div class="dl-dd" data-i="${i}"><button type="button" onclick="DynLOB.open(${i})"></button><div class="dl-pnl"><div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}${vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('')}</div></div>`);});host.innerHTML=parts.join('')||'<div style="color:var(--muted);font-size:13px">No filters for this grid.</div>';S.cols.forEach((h,i)=>{if(S.cfg[i]&&S.cfg[i].filter)label(i);});}
   function label(i){const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd)return;const n=S.sel[i].size;dd.querySelector('button').textContent=n?S.cols[i]+' · '+n:'All '+S.cols[i];}
   function open(i){S.host.querySelectorAll('.dl-dd.open').forEach(d=>{if(d.dataset.i!=i)d.classList.remove('open');});q(`.dl-dd[data-i="${i}"]`).classList.toggle('open');}
@@ -588,11 +588,17 @@ window.DynLOB=(function(){
   function reset(){Object.values(S.sel).forEach(s=>s.clear());S.q='';const si=q('.dl-search input');if(si)si.value='';buildFilters();apply();}
   function search(v){S.q=String(v).toLowerCase();apply();}
   const fmt=v=>{const m=String(v).match(/^\s*(\d+(?:\.\d+)?)\s*%?\s*$/);return m?(+m[1])+'%':v;};
+  const MON3=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function effISO(lab){lab=String(lab||'').trim();let m=lab.match(/^from:(\d{4}-\d{2}-\d{2})$/);if(m)return m[1];m=lab.match(/^(\d{1,2})(?:\s+([A-Za-z]{3})[a-z]*)?(?:\s+(\d{4}))?\s*[–-]\s*\d{1,2}\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);if(m){const mi=MON3.findIndex(x=>x.toLowerCase()===String(m[2]||m[4]).toLowerCase());if(mi>=0)return (m[3]||m[5])+'-'+String(mi+1).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');}m=lab.match(/^(\d{4}-\d{2}-\d{2})$/);return m?m[1]:'';}
+  function effTxt(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+' '+MON3[+m[2]-1]+' '+m[1]:'';}
+  function segs(v){return String(v==null?'':v).split(/\s*~~\s*/).filter(Boolean).map(p=>{const kv=p.split(/\s*@@\s*/);return {rate:kv[0]||'',lab:kv[1]||'',iso:effISO(kv[1])};}).sort((a,b)=>String(b.iso).localeCompare(String(a.iso)));}
+  /* dated rates ("58% @@ from:2026-10-01 ~~ 60% @@ from:2026-09-01") -> one row per period + an "Effective From" column (newest first) */
+  function expand(){S.src=null;const rc=S.rateCol;if(rc<0||!S.rows.some(r=>String(r[rc]).indexOf('@@')>=0))return;const src=S.rows;S.src=src;S.cols=S.cols.slice(0,rc+1).concat(['Effective From'],S.cols.slice(rc+1));S.cfg=S.cfg.slice(0,rc+1).concat([{show:true,filter:true}],S.cfg.slice(rc+1));const out=[];src.forEach((r,ix)=>{const ss=String(r[rc]).indexOf('@@')>=0?segs(r[rc]):[{rate:r[rc],lab:'',iso:''}];ss.forEach((s,k)=>{const nr=r.slice(0,rc).concat([s.rate,effTxt(s.iso)||s.lab],r.slice(rc+1));nr._i=ix;nr._old=k>0;out.push(nr);});});S.rows=out;}
   function perHTML(v){return String(v).split(/\s*~~\s*/).filter(Boolean).map(function(p){var kv=p.split(/\s*@@\s*/);var r=kv[0]||'',lab=kv[1]||'';return '<div class="dl-per"><b>'+esc(fmt(r))+'</b>'+(lab?' <span>'+esc(lab)+'</span>':'')+'</div>';}).join('');}
   function apply(){const terms=S.q.split(/\s+/).filter(Boolean);S.view=S.rows.filter(r=>{for(const i in S.sel){if(S.sel[i].size&&!S.sel[i].has(r[i]))return false;}if(!terms.length)return true;const hay=r.join(' ').toLowerCase();return terms.every(t=>hay.includes(t));});if(S.sortKey>=0){S.view.sort((a,b)=>{const x=a[S.sortKey],y=b[S.sortKey],nx=parseFloat(x),ny=parseFloat(y);let c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:String(x).localeCompare(String(y));return S.sortAsc?c:-c;});}render();}
   function sortBy(i){S.sortAsc=(S.sortKey===i)?!S.sortAsc:true;S.sortKey=i;apply();}
   const CAP=5000;
-  function render(){const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const capped=!S.showAll&&S.view.length>CAP;const shown=capped?S.view.slice(0,CAP):S.view;const nf=n=>Number(n).toLocaleString('en-IN');q('.dl-count').innerHTML=capped?`Showing first ${nf(CAP)} of ${nf(S.view.length)} · <button type="button" class="dl-more" onclick="DynLOB.showAll()">Show all</button>`:nf(S.view.length)+' of '+nf(S.rows.length)+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr data-ri="'+r._i+'"'+(S.rowClick?' class="dl-clk"':'')+'>'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${esc(val)}</td>`;}).join('')+'</tr>').join('');chips();}
+  function render(){const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const capped=!S.showAll&&S.view.length>CAP;const shown=capped?S.view.slice(0,CAP):S.view;const nf=n=>Number(n).toLocaleString('en-IN');q('.dl-count').innerHTML=capped?`Showing first ${nf(CAP)} of ${nf(S.view.length)} · <button type="button" class="dl-more" onclick="DynLOB.showAll()">Show all</button>`:nf(S.view.length)+' of '+nf(S.rows.length)+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr data-ri="'+r._i+'" class="'+(S.rowClick?'dl-clk':'')+(r._old?' dl-old':'')+'">'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${esc(val)}</td>`;}).join('')+'</tr>').join('');chips();}
   function chips(){const host=q('.dl-chips');const items=[];Object.keys(S.sel).forEach(i=>{[...S.sel[i]].forEach(v=>{items.push(`<span class="dl-chip" data-i="${i}" data-v="${esc(v)}">${esc(S.cols[i])}: ${esc(v)} <b>✕</b></span>`);});});host.innerHTML=items.length?items.join('')+'<span class="dl-chip dl-clearall">Clear all</span>':'';}
   function toggle(){S.host.classList.toggle('dl-open');}
   document.addEventListener('click',e=>{const c=e.target.closest('.dl-chip');if(!c||!S.host||!S.host.contains(c))return;if(c.classList.contains('dl-clearall')){reset();return;}const i=c.dataset.i,v=c.dataset.v;if(S.sel[i]){S.sel[i].delete(v);buildFilters();apply();}});
@@ -1022,65 +1028,85 @@ function periodLabel(fromISO,toISO){
   return a.getDate()+' '+_MON[a.getMonth()]+' '+a.getFullYear()+' – '+b.getDate()+' '+_MON[b.getMonth()]+' '+b.getFullYear();
 }
 function _sp(j){ try{return JSON.parse(j||'[]');}catch(e){return [];} }
+const KEEP_PERIODS=2;                                   // current + previous rate per row
+function _effISO(lab){lab=String(lab||'').trim();let m=lab.match(/^from:(\d{4}-\d{2}-\d{2})$/);if(m)return m[1];m=lab.match(/^(\d{1,2})(?:\s+([A-Za-z]{3})[a-z]*)?(?:\s+(\d{4}))?\s*[–-]\s*\d{1,2}\s+([A-Za-z]{3})[a-z]*\s+(\d{4})/);if(m){const mi=_MON.findIndex(x=>x.toLowerCase()===String(m[2]||m[4]).toLowerCase());if(mi>=0)return (m[3]||m[5])+'-'+String(mi+1).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');}m=lab.match(/^(\d{4}-\d{2}-\d{2})$/);return m?m[1]:'';}
+function _effTxt(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+' '+_MON[+m[2]-1]+' '+m[1]:'';}
+function _segs(v,fb){return String(v==null?'':v).split(/\s*~~\s*/).filter(Boolean).map(p=>{const kv=p.split(/\s*@@\s*/);return {rate:(kv[0]||'').trim(),iso:_effISO(kv[1]||'')||fb||''};});}
+function _nr(x){const n=parseFloat(String(x).replace('%',''));return isNaN(n)?String(x).trim():n;}
+/* add a rate effective from `iso`; same date replaces; unchanged rate (vs the latest earlier one) adds nothing */
+function _addSeg(cell,rate,iso,fb){
+  let ss=_segs(cell,fb).filter(s=>s.iso!==iso);
+  const prev=ss.filter(s=>s.iso<iso).sort((a,b)=>b.iso.localeCompare(a.iso))[0];
+  if(!(prev&&_nr(prev.rate)===_nr(rate))) ss.push({rate:String(rate).trim(),iso});
+  ss.sort((a,b)=>b.iso.localeCompare(a.iso));
+  return ss.slice(0,KEEP_PERIODS).map(s=>s.rate+PKV+'from:'+s.iso).join(PSEP);
+}
 async function publishLob(){
   if(!pendingLob) return toast('⚠ Upload a filled Excel first.');
   if(!cloudOn||!db) return toast('⚠ Connect Firebase to publish.');
-  const fEl=$('lobEffFrom'), tEl=$('lobEffTo');
-  const from=fEl?fEl.value:'', to=tEl?tEl.value:'';
-  if(!from||!to) return toast('⚠ Set Effective From and Effective To dates first.');
-  if(from>to) return toast('⚠ Effective From is after Effective To.');
-  const label=periodLabel(from,to), month=from.slice(0,7);
+  const from=$('lobEffFrom')?$('lobEffFrom').value:'';
+  if(!from) return toast('⚠ Set the Effective From date first.');
+  const label='from '+_effTxt(from), month=from.slice(0,7);
   const rc=(pendingLob.rateCol==null?-1:pendingLob.rateCol);
+  if(rc<0) return toast('⚠ No commission % column detected in this file.');
   const cols=pendingLob.columns||[];
   const renIdx=cols.findIndex(h=>/renewal/i.test(h));
-  const keyOf=r=>r.map((v,i)=>(i===rc||i===renIdx)?'':String(v==null?'':v)).join('\u0001');
+  const noteIdx=cols.findIndex((h,i)=>i!==rc&&/note|remark|condition|caps/i.test(h));
+  const keyOf=r=>r.map((v,i)=>(i===rc||i===renIdx||i===noteIdx)?'':String(v==null?'':v).trim()).join('\u0001');
+  const replaceIns=$('lobReplace')?$('lobReplace').checked:true;
   try{
     const ref=db.collection('gmp_lobs').doc(pendingLob.id);
     const snap=await ref.get(); const cur=snap.exists?snap.data():null;
     await zUnpack(cur);
     const curRows=cur?_sp(cur.rowsJson):[];
-    let baseRows=[];
-    const merging=!!(cur && cur.month===month && curRows.length);
-    if(cur && cur.month===month) baseRows=curRows.map(r=>r.slice());              // continue same month → stack
-    if(cur && cur.month && cur.month!==month && curRows.length){                  // new month → archive previous
+    const sameCols=!!(cur&&Array.isArray(cur.columns)&&cur.columns.join('|')===cols.join('|'));
+    if(cur && cur.month && cur.month!==month && curRows.length){                  // new month → keep a downloadable snapshot
       await db.collection('gmp_lob_archive').doc(pendingLob.id+'__'+cur.month).set({
         lobId:pendingLob.id, name:cur.name||pendingLob.name, month:cur.month,
         columns:cur.columns||cols, ...(await zPack(cur.rowsJson||'[]')), rateCol:(cur.rateCol==null?rc:cur.rateCol),
         cfgJson:cur.cfgJson||'[]', ts:Date.now(), by:(currentUser()?currentUser().email:'')
       });
     }
-    const idx=new Map(); baseRows.forEach((r,i)=>idx.set(keyOf(r),i));
-    const merged=baseRows;
-    (pendingLob.rows||[]).forEach(nr=>{
-      const raw=String(nr[rc]==null?'':nr[rc]).split(/\s*~~\s*/)[0].split(/\s*@@\s*/)[0].trim();  // base rate only (guard re-encoding)
-      const seg=(raw||'—')+PKV+label; const k=keyOf(nr);
+    const fb=((cur&&cur.month)||month)+'-01';                                        // date for old undated rates
+    let base=sameCols?curRows.map(r=>r.slice()):[];
+    const ic=Math.max(0,cols.findIndex(h=>/insurer|company/i.test(h)));
+    const up=pendingLob.rows||[]; const newKeys=new Set(up.map(keyOf));
+    let removed=0, changed=0, added=0;
+    if(replaceIns){ const upIns=new Set(up.map(r=>String(r[ic]||'').trim()));
+      base=base.filter(r=>{ if(upIns.has(String(r[ic]||'').trim())&&!newKeys.has(keyOf(r))){removed++;return false;} return true; }); }
+    const idx=new Map(); base.forEach((r,i)=>idx.set(keyOf(r),i));
+    up.forEach(nr=>{
+      const raw=String(nr[rc]==null?'':nr[rc]).split(/\s*~~\s*/)[0].split(/\s*@@\s*/)[0].trim();
+      const k=keyOf(nr);
       if(idx.has(k)){
-        const ex=merged[idx.get(k)];
-        const parts=String(ex[rc]||'').split(/\s*~~\s*/).filter(Boolean).filter(p=>p.split(/\s*@@\s*/)[1]!==label);
-        parts.push(seg); ex[rc]=parts.join(PSEP);
+        const ex=base[idx.get(k)]; const before=_segs(ex[rc],fb);
+        ex[rc]=_addSeg(ex[rc],raw,from,fb);
+        const top=_segs(ex[rc],fb)[0], old=before.sort((a,b)=>b.iso.localeCompare(a.iso))[0];
+        if(old&&top&&_nr(old.rate)!==_nr(top.rate)) changed++;
+        if(noteIdx>=0) ex[noteIdx]=nr[noteIdx];
         if(renIdx>=0 && nr[renIdx]!=null && nr[renIdx]!=='') ex[renIdx]=nr[renIdx];
-      } else { const row=nr.slice(); row[rc]=seg; merged.push(row); idx.set(k,merged.length-1); }
+      } else { const row=nr.slice(); row[rc]=raw+PKV+'from:'+from; base.push(row); idx.set(k,base.length-1); added++; }
     });
+    const merged=base;
     let cfgOut=pendingLob.cfg||[];
-    if(merging && !pendingLob.cfgTouched && Array.isArray(cur.columns) && cur.columns.join('|')===cols.join('|')){ const oc=_sp(cur.cfgJson); if(oc.length===cols.length) cfgOut=oc; }  // partial upload can't hide columns
+    if(sameCols && !pendingLob.cfgTouched){ const oc=_sp(cur.cfgJson); if(oc.length===cols.length) cfgOut=oc; }
     const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(cfgOut);
     const P=await zPack(rowsJson), psz=(P.rowsZ||P.rowsJson).length+cfgJson.length;
     if(psz>950000) return toast('⚠ Too large even after compression ('+Math.round(psz/1024)+'KB, ~950KB max).');
-    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, ...P, rateCol:rc, cfgJson, month, lastPeriod:label, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
-    // log to Month-Wise Data (Settings history) so LOB uploads show their date
+    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, ...P, rateCol:rc, cfgJson, month, lastPeriod:label, effFrom:from, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
     try{
-      const insCol = cols.findIndex(h=>/insurer|company/i.test(h)); const ic = insCol<0?0:insCol;
-      const insSet = new Set(merged.map(r=>String(r[ic]==null?'':r[ic]).trim()).filter(Boolean));
+      const insSet=new Set(merged.map(r=>String(r[ic]==null?'':r[ic]).trim()).filter(Boolean));
       db.collection('gmp_history').doc(pendingLob.id+'__'+month).set({
         month, ts:Date.now(), file:pendingLob.name+' · '+label, rules:merged.length,
         insurers:insSet.size, uploads:1, by:(currentUser()?currentUser().email:''), lob:pendingLob.name
       },{merge:true}).catch(()=>{});
     }catch(e){}
-    toast('✅ Published "'+pendingLob.name+'" · '+label+((cur&&cur.month&&cur.month!==month)?' · archived '+cur.month:''));
+    pendingLob.fresh=false;
+    toast('✅ Published "'+pendingLob.name+'" · effective '+label+' · '+changed+' rates changed, '+added+' new rows'+(removed?', '+removed+' old rows removed':''));
   }catch(e){ toast('❌ '+(e.message||'failed')); }
 }
 /* ---- Edit a single rate from the admin preview (no Excel) ---- */
-function _perList(v){ return String(v==null?'':v).split(/\s*~~\s*/).filter(Boolean).map(p=>{const kv=p.split(/\s*@@\s*/);return {rate:kv[0]||'',label:kv[1]||''};}); }
+function _perList(v){ return String(v==null?'':v).split(/\s*~~\s*/).filter(Boolean).map(p=>{const kv=p.split(/\s*@@\s*/);const d=_effTxt(_effISO(kv[1]||''));return {rate:kv[0]||'',label:d?'from '+d:(kv[1]||'')};}); }
 function onPreviewRowClick(ri,row){
   if(!pendingLob||!row) return;
   if(pendingLob.fresh) return toast('⚠ Publish this upload first, then edit individual rates.');
@@ -1099,12 +1125,11 @@ function onPreviewRowClick(ri,row){
     <div class="mb">
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${params.map(x=>`<span class="dl-chip" style="padding:4px 10px"><span style="font-weight:500;color:var(--muted)">${esc(x.h)}:</span>&nbsp;${esc(x.v)}</span>`).join('')}</div>
       <div style="margin-bottom:14px"><span style="${L}">Current rate</span>${curList.length?curList.map(p=>`<div class="dl-per"><b>${esc(p.rate)}</b>${p.label?` <span>${esc(p.label)}</span>`:''}</div>`).join(''):'<div class="desc">—</div>'}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div><label style="${L}">New rate % *</label><input id="reRate" style="${I}" placeholder="e.g. 27.5" inputmode="decimal"></div>
         <div><label style="${L}">Effective From *</label><input id="reFrom" type="date" style="${I}"></div>
-        <div><label style="${L}">Effective To *</label><input id="reTo" type="date" style="${I}"></div>
       </div>
-      <div class="desc" style="margin-top:10px">Same dates as an existing period <b>replace</b> that rate. New dates in the same month <b>add</b> a dated rate alongside. For a new month, upload the full grid.</div>
+      <div class="desc" style="margin-top:10px">The new % applies from this date; the previous % stays visible with its own Effective From date. Same date as an existing rate <b>replaces</b> it.</div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
         <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
         <button class="btn btn-accent" onclick="saveRateEdit()">Save rate</button>
@@ -1119,23 +1144,20 @@ async function saveRateEdit(){
   const raw=($('reRate').value||'').trim().replace(/%\s*$/,'').trim();
   if(!/^\d+(\.\d+)?$/.test(raw)) return toast('⚠ Enter the new rate as a number, e.g. 27.5');
   const nv=(+raw)+'%';
-  const from=$('reFrom').value, to=$('reTo').value;
-  if(!from||!to) return toast('⚠ Set Effective From and Effective To.');
-  if(from>to) return toast('⚠ Effective From is after Effective To.');
-  const label=periodLabel(from,to), month=from.slice(0,7);
+  const from=$('reFrom').value;
+  if(!from) return toast('⚠ Set the Effective From date.');
+  const label='from '+_effTxt(from), month=from.slice(0,7);
   try{
     const ref=db.collection('gmp_lobs').doc(E.lobId); const snap=await ref.get();
     if(!snap.exists) return toast('❌ Grid not found — publish it first.');
     const cur=snap.data(); await zUnpack(cur); const rows=_sp(cur.rowsJson); const cols=cur.columns||E.cols;
     const rc=(cur.rateCol==null?E.rc:cur.rateCol);
-    if(cur.month && cur.month!==month) return toast('⚠ Dates must fall in the grid\'s current month ('+cur.month+'). For a new month, upload the full grid.');
     const renIdx=cols.findIndex(h=>/renewal/i.test(h));
     const keyOf=r=>r.map((x,i)=>(i===rc||i===renIdx)?'':String(x==null?'':x)).join('\u0001');
     const k=keyOf(E.row); const idx=rows.findIndex(r=>keyOf(r)===k);
     if(idx<0) return toast('❌ Row not found in the published grid — refresh and try again.');
     const old=String(rows[idx][rc]==null?'':rows[idx][rc]);
-    const parts=old.split(/\s*~~\s*/).filter(Boolean).filter(p=>p.split(/\s*@@\s*/)[1]!==label);
-    parts.push(nv+PKV+label); rows[idx][rc]=parts.join(PSEP);
+    rows[idx][rc]=_addSeg(old,nv,from,(cur.month||month)+'-01');
     const u=currentUser(); const ii=cols.findIndex(h=>/insurer|company/i.test(h));
     const log=Array.isArray(cur.editLog)?cur.editLog.slice(-199):[];
     log.push({ts:Date.now(), by:u?u.email:'', insurer:String(rows[idx][ii<0?0:ii]||''), from:old.split(/\s*@@\s*/)[0]&&old.indexOf('@@')<0?old:_perList(old).map(p=>p.rate+(p.label?' ('+p.label+')':'')).join('; '), to:nv, period:label,
@@ -1168,7 +1190,7 @@ function dlArchive(id){
   const x=[].concat(...Object.values(lobArchives)).find(a=>a.id===id); if(!x) return;
   let rows=[]; try{rows=JSON.parse(x.rowsJson||'[]');}catch(e){}
   const cols=x.columns||[], rc=(x.rateCol==null?-1:x.rateCol);
-  const dec=v=>String(v==null?'':v).split(/\s*~~\s*/).map(p=>{const kv=p.split(/\s*@@\s*/);return kv[1]?kv[0]+' ('+kv[1]+')':kv[0];}).join('; ');
+  const dec=v=>String(v==null?'':v).split(/\s*~~\s*/).map(p=>{const kv=p.split(/\s*@@\s*/);const d=_effTxt(_effISO(kv[1]||''));return kv[1]?kv[0]+' (from '+(d||kv[1])+')':kv[0];}).join('; ');
   const aoa=[cols].concat(rows.map(r=>r.map((v,i)=>i===rc?dec(v):v)));
   const ws=XLSX.utils.aoa_to_sheet(aoa); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Grid');
   XLSX.writeFile(wb, String(x.name||x.lobId).replace(/[^a-z0-9]+/ig,'_')+'_'+x.month+'.xlsx');
