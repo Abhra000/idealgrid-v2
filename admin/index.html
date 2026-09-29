@@ -926,7 +926,21 @@ function getLob(id){ return lobs[id] || DEFAULT_LOBS[id] || null; }
 function subscribeLobs(){
   if(!cloudOn||!db) return;
   if(lobsUnsub) lobsUnsub();
-  lobsUnsub=db.collection('gmp_lobs').onSnapshot(snap=>{ lobs={}; snap.forEach(d=>lobs[d.id]={id:d.id,...d.data()}); renderLobPick(); }, ()=>{});
+  lobsUnsub=db.collection('gmp_lobs').onSnapshot(async snap=>{ const nl={}; snap.forEach(d=>nl[d.id]={id:d.id,...d.data()}); await Promise.all(Object.values(nl).map(zUnpack)); lobs=nl; renderLobPick(); }, ()=>{});
+}
+/* gzip-compressed grid storage (rowsZ = base64 gzip of rowsJson) — lets big grids fit Firestore's 1 MB doc limit */
+const ZMIN=150000;
+async function zPack(json){
+  if(json.length<ZMIN || typeof CompressionStream==='undefined') return {rowsJson:json, rowsZ:''};
+  const u8=new Uint8Array(await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  let s=''; for(let i=0;i<u8.length;i+=0x8000) s+=String.fromCharCode.apply(null,u8.subarray(i,i+0x8000));
+  return {rowsJson:'', rowsZ:btoa(s)};
+}
+async function zUnpack(d){
+  if(!d||!d.rowsZ) return;
+  try{ const bin=atob(d.rowsZ), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    d.rowsJson=await new Response(new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip'))).text();
+  }catch(e){ d.rowsJson='[]'; }
 }
 function renderLobPick(){
   const sel=$$('lobPick'); if(!sel) return; const cur=sel.value||HEALTH_ID;
@@ -1023,6 +1037,7 @@ async function publishLob(){
   try{
     const ref=db.collection('gmp_lobs').doc(pendingLob.id);
     const snap=await ref.get(); const cur=snap.exists?snap.data():null;
+    await zUnpack(cur);
     const curRows=cur?_sp(cur.rowsJson):[];
     let baseRows=[];
     const merging=!!(cur && cur.month===month && curRows.length);
@@ -1030,7 +1045,7 @@ async function publishLob(){
     if(cur && cur.month && cur.month!==month && curRows.length){                  // new month → archive previous
       await db.collection('gmp_lob_archive').doc(pendingLob.id+'__'+cur.month).set({
         lobId:pendingLob.id, name:cur.name||pendingLob.name, month:cur.month,
-        columns:cur.columns||cols, rowsJson:cur.rowsJson||'[]', rateCol:(cur.rateCol==null?rc:cur.rateCol),
+        columns:cur.columns||cols, ...(await zPack(cur.rowsJson||'[]')), rateCol:(cur.rateCol==null?rc:cur.rateCol),
         cfgJson:cur.cfgJson||'[]', ts:Date.now(), by:(currentUser()?currentUser().email:'')
       });
     }
@@ -1049,8 +1064,9 @@ async function publishLob(){
     let cfgOut=pendingLob.cfg||[];
     if(merging && !pendingLob.cfgTouched && Array.isArray(cur.columns) && cur.columns.join('|')===cols.join('|')){ const oc=_sp(cur.cfgJson); if(oc.length===cols.length) cfgOut=oc; }  // partial upload can't hide columns
     const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(cfgOut);
-    if(rowsJson.length>950000) return toast('⚠ Too large ('+Math.round(rowsJson.length/1024)+'KB, ~950KB max). Split the sheet.');
-    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, rowsJson, rateCol:rc, cfgJson, month, lastPeriod:label, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
+    const P=await zPack(rowsJson), psz=(P.rowsZ||P.rowsJson).length+cfgJson.length;
+    if(psz>950000) return toast('⚠ Too large even after compression ('+Math.round(psz/1024)+'KB, ~950KB max).');
+    await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, ...P, rateCol:rc, cfgJson, month, lastPeriod:label, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
     // log to Month-Wise Data (Settings history) so LOB uploads show their date
     try{
       const insCol = cols.findIndex(h=>/insurer|company/i.test(h)); const ic = insCol<0?0:insCol;
@@ -1110,7 +1126,7 @@ async function saveRateEdit(){
   try{
     const ref=db.collection('gmp_lobs').doc(E.lobId); const snap=await ref.get();
     if(!snap.exists) return toast('❌ Grid not found — publish it first.');
-    const cur=snap.data(); const rows=_sp(cur.rowsJson); const cols=cur.columns||E.cols;
+    const cur=snap.data(); await zUnpack(cur); const rows=_sp(cur.rowsJson); const cols=cur.columns||E.cols;
     const rc=(cur.rateCol==null?E.rc:cur.rateCol);
     if(cur.month && cur.month!==month) return toast('⚠ Dates must fall in the grid\'s current month ('+cur.month+'). For a new month, upload the full grid.');
     const renIdx=cols.findIndex(h=>/renewal/i.test(h));
@@ -1124,7 +1140,7 @@ async function saveRateEdit(){
     const log=Array.isArray(cur.editLog)?cur.editLog.slice(-199):[];
     log.push({ts:Date.now(), by:u?u.email:'', insurer:String(rows[idx][ii<0?0:ii]||''), from:old.split(/\s*@@\s*/)[0]&&old.indexOf('@@')<0?old:_perList(old).map(p=>p.rate+(p.label?' ('+p.label+')':'')).join('; '), to:nv, period:label,
       key:E.row.filter((x,i)=>i!==rc&&i!==renIdx&&i!==(ii<0?0:ii)&&x!==''&&x!=null&&x!=='All').slice(0,6).join(' · ')});
-    await ref.set({rowsJson:JSON.stringify(rows), month:cur.month||month, lastPeriod:cur.lastPeriod||label, editLog:log, ts:Date.now(), by:u?u.email:''},{merge:true});
+    await ref.set({...(await zPack(JSON.stringify(rows))), month:cur.month||month, lastPeriod:cur.lastPeriod||label, editLog:log, ts:Date.now(), by:u?u.email:''},{merge:true});
     closeModal(); toast('✅ Rate updated · '+nv+' · '+label);
   }catch(e){ toast('❌ '+(e.message||'failed')); }
 }
@@ -1133,8 +1149,9 @@ let lobArchives={};
 function subscribeLobArchives(){
   if(!cloudOn||!db) return;
   if(window._archUnsub) window._archUnsub();
-  window._archUnsub=db.collection('gmp_lob_archive').onSnapshot(snap=>{
-    lobArchives={}; snap.forEach(d=>{const x={id:d.id,...d.data()}; (lobArchives[x.lobId]=lobArchives[x.lobId]||[]).push(x);});
+  window._archUnsub=db.collection('gmp_lob_archive').onSnapshot(async snap=>{
+    const all=[]; snap.forEach(d=>all.push({id:d.id,...d.data()})); await Promise.all(all.map(zUnpack));
+    lobArchives={}; all.forEach(x=>{ (lobArchives[x.lobId]=lobArchives[x.lobId]||[]).push(x); });
     Object.values(lobArchives).forEach(a=>a.sort((p,q)=>String(q.month).localeCompare(String(p.month))));
     renderLobArchives();
   },()=>{});
