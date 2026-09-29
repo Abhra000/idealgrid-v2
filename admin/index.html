@@ -260,6 +260,13 @@ body.locked #loginPage{display:flex;min-height:100vh;align-items:center;justify-
 .dl-tbl tbody tr:nth-child(even){background:#F7FAF7}.dl-tbl tbody tr:hover{background:#F5F1E3}
 .dl-rate{font-weight:800;color:var(--navy)}
 .dl-empty{padding:50px;text-align:center;color:var(--muted)}
+/* Admin LOB preview: full-width table + collapsible filters (fixes cramped preview) */
+#lobPreviewHost .dl-shell{grid-template-columns:1fr;padding:0;max-width:none}
+#lobPreviewHost .dl-bar{display:block;margin-bottom:10px}
+#lobPreviewHost .dl-filters{display:none;position:static;top:auto}
+#lobPreviewHost .dl-shell.dl-open .dl-filters{display:block;margin-bottom:14px}
+#lobPreviewHost .dl-scroll{max-height:62vh}
+#lobPreviewHost .dl-ftoggle{width:auto;padding:9px 16px}
 @media(max-width:880px){
   .dl-shell{grid-template-columns:1fr;padding:14px 12px}
   .dl-bar{display:block;margin-bottom:2px}
@@ -402,6 +409,11 @@ body.locked #loginPage{display:flex;min-height:100vh;align-items:center;justify-
 
   <!-- Masters -->
   <section id="mastersSec" class="hidden">
+    <div class="scard" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h3 style="margin:0">Masters for</h3>
+      <select id="masterLobPick" onchange="masterLobChange()" style="min-width:180px"></select>
+      <div class="desc" style="flex:1;min-width:220px">Each line of business keeps its own Insurer and Product/Plan lists. These feed that LOB's dropdowns and viewer suggestions.</div>
+    </div>
     <div class="scard">
       <h3>Insurers Master</h3>
       <div class="desc">Insurers available in the Add-row and viewer suggestion dropdowns.</div>
@@ -804,47 +816,66 @@ function addApprovedToGrid(q){
 function rejectReq(id){ decideReq(id, 'Rejected'); }
 
 /* ---------- Masters: Insurers & Products ---------- */
-let masters = { insurers: [], products: [] }, mastersUnsub = null;
+/* Per-LOB masters: { lobId: {insurers:[], products:[]} }. '__health__' = Health. */
+const MHEALTH = '__health__';
+let mastersAll = {}, mastersUnsub = null, masterLob = MHEALTH;
+let masters = { insurers: [], products: [] };   // alias -> Health masters (used by the Health add-row / buildData)
 let lobs = {}, lobsUnsub = null, pendingLob = null, lobMounted = false;
-try{ const _m = JSON.parse(localStorage.getItem('gmp_masters')); if (_m){ masters.insurers = _m.insurers||[]; masters.products = _m.products||[]; } }catch(e){}
+try{ const _a = JSON.parse(localStorage.getItem('gmp_masters_all')); if (_a && typeof _a==='object') mastersAll = _a; }catch(e){}
+try{ const _m = JSON.parse(localStorage.getItem('gmp_masters')); if (_m && !mastersAll[MHEALTH]) mastersAll[MHEALTH] = {insurers:_m.insurers||[], products:_m.products||[]}; }catch(e){}
+function mget(id){ if(!mastersAll[id]) mastersAll[id]={insurers:[],products:[]}; const m=mastersAll[id]; m.insurers=Array.isArray(m.insurers)?m.insurers:[]; m.products=Array.isArray(m.products)?m.products:[]; return m; }
+function masterLobOptions(){
+  const sel=$$('masterLobPick'); if(!sel) return;
+  const cur=sel.value||masterLob;
+  const merged=Object.assign({}, (typeof DEFAULT_LOBS==='object'?DEFAULT_LOBS:{}), lobs);
+  const arr=Object.values(merged).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||'')));
+  sel.innerHTML=`<option value="${MHEALTH}">Health</option>`+arr.map(l=>`<option value="${esc(l.id)}">${esc(l.name||l.id)}</option>`).join('');
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:MHEALTH; masterLob=sel.value;
+}
+function masterLobChange(){ const sel=$$('masterLobPick'); if(sel) masterLob=sel.value; renderMasters(); }
 function subscribeMasters(){
   if (!cloudOn || !db) return;
   if (mastersUnsub) mastersUnsub();
   mastersUnsub = db.collection('gmp_meta').doc('masters').onSnapshot(doc => {
     const d = doc.data() || {};
-    masters.insurers = Array.isArray(d.insurers) ? d.insurers : [];
-    masters.products = Array.isArray(d.products) ? d.products : [];
-    try{ localStorage.setItem('gmp_masters', JSON.stringify(masters)); }catch(e){}
+    mastersAll = (d.lobs && typeof d.lobs==='object') ? d.lobs : {};
+    if ((d.insurers || d.products) && !mastersAll[MHEALTH]) mastersAll[MHEALTH] = {insurers:d.insurers||[], products:d.products||[]};   // migrate legacy flat masters -> Health
+    masters = mget(MHEALTH);
+    try{ localStorage.setItem('gmp_masters_all', JSON.stringify(mastersAll)); }catch(e){}
     renderMasters();
     if (typeof buildData === 'function') buildData();
   }, () => {});
 }
 function saveMasters(){
-  try{ localStorage.setItem('gmp_masters', JSON.stringify(masters)); }catch(e){}
-  if (cloudOn && db) db.collection('gmp_meta').doc('masters').set({ insurers: masters.insurers, products: masters.products }, { merge: true }).catch(() => {});
+  masters = mget(MHEALTH);
+  try{ localStorage.setItem('gmp_masters_all', JSON.stringify(mastersAll)); }catch(e){}
+  if (cloudOn && db) db.collection('gmp_meta').doc('masters').set({ lobs: mastersAll }, { merge: true }).catch(() => {});
   renderMasters();
 }
 function renderMasters(){
+  masterLobOptions();
+  const cur = mget(masterLob);
   const draw = (type, hostId) => {
     const host = $$(hostId); if (!host) return;
-    const arr = masters[type] || [];
+    const arr = cur[type] || [];
     host.innerHTML = arr.length
       ? '<table class="utable" style="min-width:280px"><tbody>' + arr.map((v,i) => `<tr><td>${esc(v)}</td><td style="text-align:right"><button class="mini-btn" onclick="delMasterAt('${type}',${i})">✕ Remove</button></td></tr>`).join('') + '</tbody></table>'
-      : '<div class="desc">None yet.</div>';
+      : '<div class="desc">None yet for this LOB.</div>';
   };
   draw('insurers','insHost'); draw('products','prodHost');
 }
 function addMaster(type){
-  const id = type === 'insurers' ? 'newIns' : 'newProd';
-  const el = $$(id); if (!el) return;
+  const el = $$(type === 'insurers' ? 'newIns' : 'newProd'); if (!el) return;
   const v = el.value.trim(); if (!v) return toast('⚠ Enter a name first.');
-  if (masters[type].some(x => x.toLowerCase() === v.toLowerCase())) return toast('⚠ Already in the list.');
-  masters[type].push(v); el.value = '';
-  saveMasters(); toast('✓ Added to ' + type);
+  const cur = mget(masterLob);
+  if (cur[type].some(x => x.toLowerCase() === v.toLowerCase())) return toast('⚠ Already in the list.');
+  cur[type].push(v); el.value = '';
+  saveMasters(); toast('✓ Added');
 }
 function delMasterAt(type, i){
-  if (i < 0 || i >= masters[type].length) return;
-  masters[type].splice(i, 1); saveMasters();
+  const cur = mget(masterLob);
+  if (i < 0 || i >= cur[type].length) return;
+  cur[type].splice(i, 1); saveMasters();
 }
 function dlMasterTemplate(type){
   const head = type === 'insurers' ? 'Insurer' : 'Product / Plan';
@@ -859,13 +890,14 @@ async function bulkMaster(type, f){
   try{
     const wb = XLSX.read(await f.arrayBuffer());
     const aoa = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1, defval:'' });
-    const seen = new Set(masters[type].map(x => x.toLowerCase()));
+    const cur = mget(masterLob);
+    const seen = new Set(cur[type].map(x => x.toLowerCase()));
     let added = 0;
     for (const row of aoa){
       const v = String(row[0]||'').trim();
       if (!v || /^(insurer|product)/i.test(v)) continue;
       if (seen.has(v.toLowerCase())) continue;
-      masters[type].push(v); seen.add(v.toLowerCase()); added++;
+      cur[type].push(v); seen.add(v.toLowerCase()); added++;
     }
     saveMasters();
     toast(`✅ Bulk upload: ${added} added to ${type}`);
@@ -1004,6 +1036,15 @@ async function publishLob(){
     const rowsJson=JSON.stringify(merged), cfgJson=JSON.stringify(pendingLob.cfg||[]);
     if(rowsJson.length>950000) return toast('⚠ Too large ('+Math.round(rowsJson.length/1024)+'KB, ~950KB max). Split the sheet.');
     await ref.set({name:pendingLob.name, templateCols:pendingLob.templateCols||cols, columns:cols, rowsJson, rateCol:rc, cfgJson, month, lastPeriod:label, ts:Date.now(), by:(currentUser()?currentUser().email:'')},{merge:true});
+    // log to Month-Wise Data (Settings history) so LOB uploads show their date
+    try{
+      const insCol = cols.findIndex(h=>/insurer|company/i.test(h)); const ic = insCol<0?0:insCol;
+      const insSet = new Set(merged.map(r=>String(r[ic]==null?'':r[ic]).trim()).filter(Boolean));
+      db.collection('gmp_history').doc(pendingLob.id+'__'+month).set({
+        month, ts:Date.now(), file:pendingLob.name+' · '+label, rules:merged.length,
+        insurers:insSet.size, uploads:1, by:(currentUser()?currentUser().email:''), lob:pendingLob.name
+      },{merge:true}).catch(()=>{});
+    }catch(e){}
     toast('✅ Published "'+pendingLob.name+'" · '+label+((cur&&cur.month&&cur.month!==month)?' · archived '+cur.month:''));
   }catch(e){ toast('❌ '+(e.message||'failed')); }
 }
