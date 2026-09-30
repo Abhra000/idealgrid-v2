@@ -329,10 +329,10 @@ window.DynLOB=(function(){
   }
   function classify(cols,rows){
     const n=cols.length,dist=Array.from({length:n},()=>new Set()),fill=new Array(n).fill(0);
-    rows.forEach(r=>{for(let i=0;i<n;i++){const v=r[i];if(v!==''&&v!=null){fill[i]++;if(dist[i].size<400)dist[i].add(v);}}});
+    rows.forEach(r=>{for(let i=0;i<n;i++){const v=r[i];if(v!==''&&v!=null){fill[i]++;if(dist[i].size<2000)dist[i].add(v);}}});
     let rateCol=-1,bs=0;
     for(let i=0;i<n;i++){let num=0,tot=0;rows.forEach(r=>{const v=r[i];if(v!==''&&v!=null){tot++;if(/^\s*\d+(?:\.\d+)?\s*%?\s*$/.test(v))num++;}});if(tot<3)continue;const ratio=num/tot;if(ratio<0.6)continue;const kw=/commission|payout|\brate\b|\bpo\b/i.test(cols[i])?0.3:0;if(ratio+kw>bs){bs=ratio+kw;rateCol=i;}}
-    const cfg=cols.map((h,i)=>{const d=dist[i].size;const meta=/note|caps|condition|effective|date|remark/i.test(h);const hideDef=/parameter/i.test(h);const single=fill[i]>0&&d<=1;const avg=[...dist[i]].reduce((a,v)=>a+String(v).length,0)/(d||1);const desc=avg>28;return{show:fill[i]>0&&!hideDef&&!single,filter:i!==rateCol&&!meta&&!hideDef&&!desc&&d>=2&&d<=300};});
+    const cfg=cols.map((h,i)=>{const d=dist[i].size;const meta=/note|caps|condition|effective|date|remark/i.test(h);const hideDef=/parameter/i.test(h);const single=fill[i]>0&&d<=1;const avg=[...dist[i]].reduce((a,v)=>a+String(v).length,0)/(d||1);const desc=avg>28;return{show:fill[i]>0&&!hideDef&&!single,filter:i!==rateCol&&!meta&&!hideDef&&!desc&&d>=2&&d<=1500};});
     return {rateCol,cfg};
   }
   function build(name,wb){const {columns,rows}=parse(wb);const {rateCol,cfg}=classify(columns,rows);return{name,columns,rows,rateCol,cfg};}
