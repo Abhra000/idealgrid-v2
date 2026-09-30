@@ -579,7 +579,7 @@ window.DynLOB=(function(){
   const isAllV=v=>String(v==null?'':v).trim().toLowerCase()==='all';
   function effTarget(){const s=S.sel[S.effCol];if(!s||!s.size)return '';let t='';s.forEach(txt=>{const iso=(S.effMap&&S.effMap[txt])||'';if(iso>t)t=iso;});return t;}
   function asOf(ix,t){const L=S.isosBy&&S.isosBy[ix];if(!L)return '';let b=null;for(const x of L){if(x<=t&&(b===null||x>b))b=x;}return b;}
-  function pass(r,i){const s=S.sel[i];if(!s||!s.size)return true;if(S.effCol>=0&&+i===S.effCol){if(S._effT===undefined)S._effT=effTarget();return r._iso!=null&&r._iso===asOf(r._i,S._effT);}const v=r[i];return s.has(v)||isAllV(v);}
+  function pass(r,i){const s=S.sel[i];if(!s||!s.size)return true;if(S.effCol>=0&&+i===S.effCol){if(S._effT===undefined)S._effT=effTarget();return !!r._iso&&r._iso<=S._effT&&(!r._end||r._end>=S._effT);}const v=r[i];return s.has(v)||isAllV(v);}
   function computeAvail(){S._effT=undefined;const fi=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].filter);const act=fi.filter(i=>S.sel[i]&&S.sel[i].size);const sets={};fi.forEach(i=>sets[i]=new Set());for(const r of S.rows){let n=0,fail=-1;for(const i of act){if(!pass(r,i)){n++;fail=i;if(n>1)break;}}if(n>1)continue;if(n===0){for(const i of fi){const v=r[i];if(v!==''&&v!=null&&!isAllV(v))sets[i].add(v);}}else{const v=r[fail];if(v!==''&&v!=null&&!isAllV(v))sets[fail].add(v);}}S.avail={};fi.forEach(i=>{S.avail[i]=[...sets[i]].sort(optCmp);});}
   function distinctOf(i){if(!S.avail)computeAvail();return S.avail[i]||[];}
   function refreshOptions(){S.cols.forEach((h,i)=>{if(!S.cfg[i]||!S.cfg[i].filter)return;const dd=q(`.dl-dd[data-i="${i}"]`);if(!dd||dd.classList.contains('open'))return;const vals=distinctOf(i);const sb=vals.length>12?`<input class="dl-mss" placeholder="Type to filter…" oninput="DynLOB.msearch(${i},this.value)">`:'';dd.querySelector('.dl-pnl').innerHTML=`<div class="dl-cl" onclick="DynLOB.clear(${i})">✕ Clear</div>${sb}`+vals.map(v=>`<label data-t="${esc(String(v).toLowerCase())}"><input type="checkbox" onchange="DynLOB.pick(${i},this)" data-v="${esc(v)}" ${S.sel[i].has(v)?'checked':''}>${esc(v)}</label>`).join('');});}
@@ -606,13 +606,13 @@ window.DynLOB=(function(){
   function effTxt(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[3]+' '+MON3[+m[2]-1]+' '+m[1]:'';}
   function segs(v){return String(v==null?'':v).split(/\s*~~\s*/).filter(Boolean).map(p=>{const kv=p.split(/\s*@@\s*/);return {rate:kv[0]||'',lab:kv[1]||'',iso:effISO(kv[1])};}).sort((a,b)=>String(b.iso).localeCompare(String(a.iso)));}
   /* dated rates ("58% @@ from:2026-10-01 ~~ 60% @@ from:2026-09-01") -> one row per period + an "Effective From" column (newest first) */
-  function expand(){S.src=null;S.effCol=-1;S.effMap={};S.isosBy=null;const rc=S.rateCol;if(rc<0||!S.rows.some(r=>String(r[rc]).indexOf('@@')>=0))return;const src=S.rows;S.src=src;S.effCol=rc+1;S.isosBy={};S.cols=S.cols.slice(0,rc+1).concat(['Effective From'],S.cols.slice(rc+1));S.cfg=S.cfg.slice(0,rc+1).concat([{show:true,filter:true}],S.cfg.slice(rc+1));const out=[];src.forEach((r,ix)=>{const ss=String(r[rc]).indexOf('@@')>=0?segs(r[rc]):[{rate:r[rc],lab:'',iso:''}];ss.forEach((s,k)=>{const nr=r.slice(0,rc).concat([s.rate,effTxt(s.iso)||s.lab],r.slice(rc+1));nr._i=ix;nr._old=k>0;nr._iso=s.iso||'';if(s.iso)S.effMap[effTxt(s.iso)]=s.iso;(S.isosBy[ix]=S.isosBy[ix]||[]).push(s.iso||'');out.push(nr);});});S.rows=out;}
+  function expand(){S.src=null;S.effCol=-1;S.effMap={};S.isosBy=null;const rc=S.rateCol;if(rc<0||!S.rows.some(r=>String(r[rc]).indexOf('@@')>=0))return;const src=S.rows;S.src=src;S.effCol=rc+1;S.isosBy={};S.cols=S.cols.slice(0,rc+1).concat(['Effective From'],S.cols.slice(rc+1));S.cfg=S.cfg.slice(0,rc+1).concat([{show:true,filter:true}],S.cfg.slice(rc+1));const G=[...new Set([].concat(...src.map(r=>String(r[rc]).indexOf('@@')>=0?segs(r[rc]).map(x=>x.iso):[])).filter(Boolean))].sort();const prevDay=iso=>{const d=new Date(iso+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10);};const out=[];src.forEach((r,ix)=>{const ss=String(r[rc]).indexOf('@@')>=0?segs(r[rc]):[{rate:r[rc],lab:'',iso:''}];ss.forEach((s,k)=>{const nx=k>0?ss[k-1].iso:(s.iso?G.find(g=>g>s.iso):null);const end=nx?prevDay(nx):'';const nr=r.slice(0,rc).concat([s.rate,effTxt(s.iso)||s.lab],r.slice(rc+1));nr._i=ix;nr._end=end;nr._old=!!end;nr._iso=s.iso||'';if(s.iso)S.effMap[effTxt(s.iso)]=s.iso;(S.isosBy[ix]=S.isosBy[ix]||[]).push(s.iso||'');out.push(nr);});});S.rows=out;}
   function hl(v){const s=String(v==null?'':v);const terms=S.q.split(/\s+/).filter(Boolean);if(!terms.length)return esc(s);if(!S._hre||S._hq!==S.q){S._hq=S.q;S._hre=new RegExp('('+terms.sort((a,b)=>b.length-a.length).map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')','gi');}return s.split(S._hre).map((p,i)=>i%2?'<mark class="dl-hl">'+esc(p)+'</mark>':esc(p)).join('');}
   function perHTML(v){return String(v).split(/\s*~~\s*/).filter(Boolean).map(function(p){var kv=p.split(/\s*@@\s*/);var r=kv[0]||'',lab=kv[1]||'';return '<div class="dl-per"><b>'+hl(fmt(r))+'</b>'+(lab?' <span>'+hl(lab)+'</span>':'')+'</div>';}).join('');}
   function apply(){S.avail=null;S._effT=undefined;S.limit=0;const terms=S.q.split(/\s+/).filter(Boolean);S.view=S.rows.filter(r=>{for(const i in S.sel){if(S.sel[i].size&&!pass(r,i))return false;}if(!terms.length)return true;const hay=r._h||r.join(' ').toLowerCase();return terms.every(t=>hay.includes(t));});if(S.sortKey>=0){S.view.sort((a,b)=>{const x=a[S.sortKey],y=b[S.sortKey],nx=parseFloat(x),ny=parseFloat(y);let c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:String(x).localeCompare(String(y));return S.sortAsc?c:-c;});}render();}
   function sortBy(i){S.sortAsc=(S.sortKey===i)?!S.sortAsc:true;S.sortKey=i;apply();}
   const CAP=300;
-  function render(){const T=(S.effCol>=0&&S.sel[S.effCol]&&S.sel[S.effCol].size)?effTarget():'';const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const lim=S.showAll?Infinity:(S.limit||CAP);const capped=S.view.length>lim;const shown=capped?S.view.slice(0,lim):S.view;const nf=n=>Number(n).toLocaleString('en-IN');q('.dl-count').innerHTML=capped?`Showing ${nf(lim)} of ${nf(S.view.length)} · <button type="button" class="dl-more" onclick="DynLOB.more()">Show more</button> · <button type="button" class="dl-more" onclick="DynLOB.showAll()">Show all</button>`:nf(S.view.length)+' of '+nf(S.rows.length)+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr data-ri="'+r._i+'" class="'+(S.rowClick?'dl-clk':'')+(r._old?' dl-old':'')+'">'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.effCol&&T&&r._iso&&r._iso<T){return `<td class="${cls}" data-label="${esc(S.cols[i])}">${hl(val)}<div class="dl-still">still valid on ${esc(effTxt(T))}</div></td>`;}if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${val==='—'?val:hl(val)}</td>`;}).join('')+'</tr>').join('');chips();}
+  function render(){const T=(S.effCol>=0&&S.sel[S.effCol]&&S.sel[S.effCol].size)?effTarget():'';const vc=S.cols.map((h,i)=>i).filter(i=>S.cfg[i]&&S.cfg[i].show&&S.view.some(r=>r[i]!==''&&r[i]!=null));q('.dl-thr').innerHTML=vc.map(i=>`<th onclick="DynLOB.sort(${i})">${esc(S.cols[i])}</th>`).join('');const lim=S.showAll?Infinity:(S.limit||CAP);const capped=S.view.length>lim;const shown=capped?S.view.slice(0,lim):S.view;const nf=n=>Number(n).toLocaleString('en-IN');q('.dl-count').innerHTML=capped?`Showing ${nf(lim)} of ${nf(S.view.length)} · <button type="button" class="dl-more" onclick="DynLOB.more()">Show more</button> · <button type="button" class="dl-more" onclick="DynLOB.showAll()">Show all</button>`:nf(S.view.length)+' of '+nf(S.rows.length)+' rows';q('.dl-empty').style.display=S.view.length?'none':'';q('.dl-tbl').style.display=S.view.length?'':'none';q('.dl-tb').innerHTML=shown.map(r=>'<tr data-ri="'+r._i+'" class="'+(S.rowClick?'dl-clk':'')+(r._old?' dl-old':'')+'">'+vc.map((i,k)=>{let val=r[i];if(val===''||val==null)val='—';let cls=k===0?'dl-k0':'';if(i===S.effCol&&r._end){return `<td class="${cls}" data-label="${esc(S.cols[i])}">${hl(val)}<div class="dl-still">till ${esc(effTxt(r._end))}</div></td>`;}if(i===S.rateCol&&val!=='—'&&String(val).indexOf('@@')>=0){return `<td class="dl-rate dl-rate-multi" data-label="${esc(S.cols[i])}">${perHTML(val)}</td>`;}if(i===S.rateCol&&val!=='—'){val=fmt(val);cls='dl-rate';}return `<td class="${cls}" data-label="${esc(S.cols[i])}">${val==='—'?val:hl(val)}</td>`;}).join('')+'</tr>').join('');chips();}
   function chips(){const host=q('.dl-chips');const items=[];Object.keys(S.sel).forEach(i=>{[...S.sel[i]].forEach(v=>{items.push(`<span class="dl-chip" data-i="${i}" data-v="${esc(v)}">${esc(S.cols[i])}: ${esc(v)} <b>✕</b></span>`);});});host.innerHTML=items.length?items.join('')+'<span class="dl-chip dl-clearall">Clear all</span>':'';}
   function toggle(){S.host.classList.toggle('dl-open');}
   document.addEventListener('click',e=>{const c=e.target.closest('.dl-chip');if(!c||!S.host||!S.host.contains(c))return;if(c.classList.contains('dl-clearall')){reset();return;}const i=c.dataset.i,v=c.dataset.v;if(S.sel[i]){S.sel[i].delete(v);buildFilters();apply();}});
@@ -987,7 +987,7 @@ function lobPickChange(){
   act.innerHTML=`<button class="btn btn-outline" onclick="dlTemplate('${esc(l.name||id)}', currentTemplateCols())">⬇ Sample template</button>
     <button class="btn btn-accent" onclick="$('lobFile').click()">⬆ Upload filled Excel</button>
     <button class="btn btn-outline" onclick="openEditTemplate('${id}')">✎ Edit template</button>
-    `+delBtn;
+    `+(lobs[id]?`<button class="mini-btn" style="align-self:center" onclick="clearLobData('${id}')">⟲ Clear published rates</button>`:'')+delBtn;
   let rc=0; try{rc=JSON.parse(l.rowsJson||'[]').length;}catch(e){}
   meta.textContent=`Template: ${tcols.length} columns · ${rc} rows uploaded${l.ts?' · updated '+new Date(l.ts).toLocaleDateString():''}.`;
   if((l.columns||[]).length){
@@ -1051,10 +1051,9 @@ function _nr(x){const n=parseFloat(String(x).replace('%',''));return isNaN(n)?St
 function _addSeg(cell,rate,iso,fb){
   let ss=_segs(cell,fb).filter(s=>s.iso!==iso);
   const prev=ss.filter(s=>s.iso<iso).sort((a,b)=>b.iso.localeCompare(a.iso))[0];
-  if(!(prev&&_nr(prev.rate)===_nr(rate))) ss.push({rate:String(rate).trim(),iso});
+  ss.push({rate:String(rate).trim(),iso});                            // each upload = new period from its date
   ss.sort((a,b)=>a.iso.localeCompare(b.iso));                       // oldest → newest
-  const cz=[]; ss.forEach(x=>{ if(cz.length && _nr(cz[cz.length-1].rate)===_nr(x.rate)) return; cz.push(x); });   // same % again = no change
-  ss=cz.reverse();
+  ss.reverse();
   return ss.slice(0,KEEP_PERIODS).map(s=>s.rate+PKV+'from:'+s.iso).join(PSEP);
 }
 async function publishLob(){
@@ -1215,6 +1214,16 @@ function dlArchive(id){
   const aoa=[cols].concat(rows.map(r=>r.map((v,i)=>i===rc?dec(v):v)));
   const ws=XLSX.utils.aoa_to_sheet(aoa); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Grid');
   XLSX.writeFile(wb, String(x.name||x.lobId).replace(/[^a-z0-9]+/ig,'_')+'_'+x.month+'.xlsx');
+}
+async function clearLobData(id){
+  const l=lobs[id]; if(!l||!cloudOn||!db) return;
+  if(!confirm('Clear all published rates of "'+(l.name||id)+'"? Template and column settings stay. A snapshot is archived first. Then publish the grids again, oldest date first.')) return;
+  try{
+    await zUnpack(l);
+    if(l.month && (l.rowsJson||'[]')!=='[]') await db.collection('gmp_lob_archive').doc(id+'__'+l.month+'__before-reset').set({lobId:id,name:l.name||id,month:l.month+' (before reset)',columns:l.columns||[],...(await zPack(l.rowsJson||'[]')),rateCol:(l.rateCol==null?-1:l.rateCol),cfgJson:l.cfgJson||'[]',ts:Date.now(),by:(currentUser()?currentUser().email:'')});
+    await db.collection('gmp_lobs').doc(id).set({rowsJson:'[]',rowsZ:'',month:'',lastPeriod:'',effFrom:'',ts:Date.now()},{merge:true});
+    toast('✓ Rates cleared — now publish the grids again (oldest Effective From first)');
+  }catch(e){ toast('❌ '+(e.message||'failed')); }
 }
 function delLob(id){
   const l=lobs[id]; if(!l) return;
